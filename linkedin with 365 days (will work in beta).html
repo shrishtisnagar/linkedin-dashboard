@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>LinkedIn Analytics Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  *{font-family:'Poppins',sans-serif;box-sizing:border-box;margin:0;padding:0}
+  body{background:#f0f4f8;min-height:100vh;color:#1a1a2e}
+  button{cursor:pointer;font-family:'Poppins',sans-serif}
+  input,select{font-family:'Poppins',sans-serif}
+
+  /* Sidebar */
+  #sidebar{width:220px;background:#1a1a2e;min-height:100vh;position:fixed;top:0;left:0;display:flex;flex-direction:column;padding:24px 0;z-index:100}
+  #sidebar .logo{padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,0.1)}
+  #sidebar .logo h2{font-size:17px;font-weight:800;color:var(--primary)}
+  #sidebar .logo p{font-size:11px;color:#aaa;margin-top:2px}
+  #sidebar .section-label{padding:14px 12px 4px;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px}
+  .client-btn{background:transparent;color:#ccc;border:none;padding:9px 20px;text-align:left;font-size:13px;width:100%;border-left:3px solid transparent;transition:all 0.2s}
+  .client-btn.active{background:var(--primary);color:#fff;font-weight:700;border-left-color:var(--accent)}
+  .upload-btn{margin:10px 12px 0;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 0;font-size:13px;font-weight:600;width:calc(100% - 24px)}
+  #sidebar .spacer{flex:1}
+  .nav-btn{background:transparent;color:#aaa;border:none;padding:10px 20px;text-align:left;font-size:13px;width:100%;border-left:3px solid transparent}
+  .nav-btn.active{background:rgba(255,255,255,0.08);color:#fff;border-left-color:var(--primary)}
+
+  /* Main */
+  #main{margin-left:220px;padding:32px;min-height:100vh}
+
+  /* Cards */
+  .card{background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.07);margin-bottom:24px}
+  .stat-card{background:#fff;border-radius:12px;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,0.07);flex:1;min-width:130px;border-top:4px solid var(--primary)}
+  .stat-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+  .stat-value{font-size:22px;font-weight:700;color:#1a1a2e}
+  .stats-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
+  .dem-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f5f5f5;font-size:13px}
+
+  /* Form */
+  .form-group{margin-bottom:18px}
+  .form-label{display:block;font-size:13px;font-weight:600;color:#444;margin-bottom:6px}
+  .form-input{width:100%;padding:10px 14px;border-radius:8px;border:1px solid #ddd;font-size:14px;background:#fafafa;outline:none}
+  .form-hint{font-size:12px;color:#999;margin-top:5px}
+  .file-ok{font-size:12px;color:#38a169;margin-top:4px}
+  .type-btn{flex:1;padding:10px 0;border-radius:8px;border:2px solid #ddd;background:#fff;color:#555;font-size:13px;font-weight:400;transition:all 0.2s}
+  .type-btn.active{border-color:var(--primary);background:rgba(0,119,181,0.07);color:var(--primary);font-weight:700}
+
+  /* Header bar */
+  .report-header{background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:16px;padding:24px 28px;margin-bottom:24px;color:#fff;display:flex;justify-content:space-between;align-items:center}
+
+  /* Table */
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{padding:9px 10px;text-align:left;color:#666;font-weight:600;border-bottom:2px solid #eee;white-space:nowrap;background:#f8faff}
+  td{padding:9px 10px;border-bottom:1px solid #f0f0f0;color:#444}
+
+  /* AI box */
+  .ai-box{background:#f8faff;border:1px solid #e0eaf5;border-radius:12px;padding:20px 24px;margin-top:8px}
+  .ai-box h3{font-size:15px;color:#1a1a2e;margin-bottom:6px;font-weight:700}
+  .ai-box h4{font-size:14px;color:#333;margin:12px 0 4px;font-weight:600}
+  .ai-box p{font-size:13px;line-height:1.7;color:#374151;margin:4px 0}
+  .ai-box ul{margin:6px 0 10px 18px}
+  .ai-box li{font-size:13px;line-height:1.6;color:#374151;margin-bottom:4px}
+
+  /* Post Preview Cards */
+  .posts-preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:4px}
+  .post-preview-card{border:1px solid #e8edf2;border-radius:12px;overflow:hidden;background:#fff;transition:box-shadow 0.2s;display:flex;flex-direction:column}
+  .post-preview-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.1)}
+  .post-preview-img{width:100%;height:148px;object-fit:cover;background:#f0f4f8;display:block}
+  .post-preview-img-placeholder{width:100%;height:148px;background:linear-gradient(135deg,#f0f4f8,#e2e8f0);display:flex;align-items:center;justify-content:center;font-size:28px}
+  .post-preview-body{padding:12px 14px;flex:1;display:flex;flex-direction:column;gap:6px}
+  .post-preview-title{font-size:12px;font-weight:600;color:#1a1a2e;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .post-preview-stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+  .post-preview-stat{font-size:11px;color:#666;display:flex;align-items:center;gap:3px}
+  .post-preview-stat span{font-weight:700;color:#1a1a2e}
+  .post-preview-footer{padding:10px 14px;border-top:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center}
+  .post-preview-date{font-size:11px;color:#aaa}
+  .post-preview-link{font-size:11px;font-weight:600;padding:5px 10px;border-radius:6px;text-decoration:none;color:#fff}
+  .lp-key-notice{background:#f8faff;border:1px dashed #b0c8e0;border-radius:10px;padding:14px 18px;font-size:13px;color:#555;display:flex;align-items:center;gap:10px}
+
+  /* API Key Modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;display:flex;align-items:center;justify-content:center}
+  .modal{background:#fff;border-radius:20px;padding:40px;width:520px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+  .modal h2{font-size:20px;font-weight:800;color:#1a1a2e;margin-bottom:8px}
+  .modal p{font-size:13px;color:#666;line-height:1.7;margin-bottom:20px}
+
+  /* Report view */
+  #report-view{position:fixed;inset:0;background:#f0f4f8;z-index:200;overflow-y:auto;display:none}
+  #report-view.open{display:block}
+  .report-toolbar{position:sticky;top:0;background:#1a1a2e;padding:12px 32px;display:flex;justify-content:space-between;align-items:center;z-index:10}
+  .report-body{max-width:900px;margin:0 auto;padding:40px 40px 80px}
+
+  /* Welcome */
+  .welcome{text-align:center;padding-top:80px}
+  .welcome .icon{font-size:52px;margin-bottom:16px}
+
+  /* FIX: ensure SVG inside cards never clips */
+  .card svg, .card .chart-wrap svg {
+    display:block;
+    overflow:visible;
+    width:100%;
+    height:auto;
+  }
+
+  @media print{
+    .report-toolbar{display:none!important}
+    #sidebar{display:none!important}
+    #main{display:none!important}
+    #report-view{position:static!important;overflow:visible!important}
+    .report-body{padding:20px!important}
+    /* FIX: prevent cards from clipping on print */
+    .card{
+      break-inside:avoid;
+      page-break-inside:avoid;
+      overflow:visible!important;
+    }
+    .grid-2{
+      break-inside:avoid;
+      page-break-inside:avoid;
+    }
+    /* FIX: ensure SVG is never clipped when printing */
+    svg{
+      overflow:visible!important;
+      max-width:100%!important;
+    }
+    .stats-row{
+      break-inside:avoid;
+      page-break-inside:avoid;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- WELCOME MODAL -->
+<div class="modal-overlay" id="api-modal">
+  <div class="modal" style="max-height:90vh;overflow-y:auto">
+    <div style="font-size:40px;margin-bottom:16px">📊</div>
+    <h2>Welcome to LinkedIn Analytics</h2>
+    <p>Upload your LinkedIn exports to instantly visualise performance — charts, demographics, top posts, follower trends and a clean printable report.</p>
+
+    <div style="background:#f8faff;border-radius:12px;padding:16px 20px;margin-bottom:16px;border:1px solid #e0eaf5">
+      <div style="font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:10px">✅ What's included (free, no account needed):</div>
+      <div style="font-size:13px;color:#444;line-height:2">
+        📁 Company page + personal profile support<br/>
+        📈 Charts, trends, demographics<br/>
+        🖨 Clean printable PDF report<br/>
+        🎨 Custom brand colours
+      </div>
+    </div>
+
+    <div style="background:#f0fdf4;border-radius:12px;padding:16px 20px;margin-bottom:16px;border:1px solid #bbf7d0">
+      <div style="font-size:13px;font-weight:700;color:#166534;margin-bottom:8px">💾 Where is your data stored?</div>
+      <div style="font-size:13px;color:#166534;line-height:1.8">
+        Everything stays <strong>on your own computer</strong>, inside your browser. Nothing is uploaded to any server — we never see your data.<br/><br/>
+        Your uploads <strong>persist between sessions</strong> — close the tab, come back next week, your data is still here. This is what makes the <strong>365-Day View</strong> useful: upload a new month each month and watch your trends build up over time.
+      </div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid #bbf7d0">
+        <div style="font-size:12px;font-weight:600;color:#166534;margin-bottom:6px">⚠️ Two things to be aware of:</div>
+        <div style="font-size:12px;color:#166534;line-height:1.8">
+          • <strong>Clearing your browser cache</strong> (via "Clear browsing data") will wipe your saved reports.<br/>
+          • <strong>Different browser or device</strong> = fresh start. Data only lives in the browser where you uploaded it.
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#fffbeb;border-radius:12px;padding:14px 18px;margin-bottom:24px;border:1px solid #fde68a;font-size:13px;color:#92400e">
+      🤖 <strong>AI commentary</strong> (coming in beta) — will support OpenAI, Gemini & more
+    </div>
+    <button onclick="skipApiKey()" style="width:100%;background:var(--primary);color:#fff;border:none;border-radius:10px;padding:14px 0;font-size:15px;font-weight:700">Get Started →</button>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="logo"><h2 id="logo-text">📊 LinkedIn</h2><p>Analytics Dashboard</p></div>
+  <div class="section-label">Clients</div>
+  <div id="client-list"></div>
+  <button class="upload-btn" onclick="setView('upload')">+ Upload Report</button>
+  <div class="spacer"></div>
+  <button class="nav-btn active" id="nav-dashboard" onclick="setView('dashboard')">📈 Dashboard</button>
+  <button class="nav-btn" id="nav-cumulative" onclick="setView('cumulative')">🗓 365-Day View</button>
+  <button class="nav-btn" id="nav-settings" onclick="setView('settings')">🎨 Branding</button>
+  <div style="padding:12px 20px;font-size:11px;color:#555;border-top:1px solid rgba(255,255,255,0.05);margin-top:4px">🤖 AI features coming in beta</div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <!-- UPLOAD VIEW -->
+  <div id="view-upload" style="display:none;max-width:580px">
+    <h2 style="color:#1a1a2e;margin-bottom:24px">Upload Monthly Report</h2>
+    <div class="card">
+      <div class="form-group"><label class="form-label">Client Name</label><input class="form-input" id="up-client" placeholder="e.g. Acme Corp"/></div>
+      <div class="form-group"><label class="form-label">Report Month</label><input class="form-input" type="month" id="up-month"/></div>
+      <div class="form-group">
+        <label class="form-label">Page Type</label>
+        <div style="display:flex;gap:10px">
+          <button class="type-btn active" id="type-company" onclick="selectType('company')">🏢 Company Page</button>
+          <button class="type-btn" id="type-personal" onclick="selectType('personal')">👤 Personal Profile</button>
+        </div>
+      </div>
+      <div id="company-files">
+        <div class="form-group"><label class="form-label">Content XLS <span style="color:#e53e3e">*</span></label><div class="form-hint" style="margin-bottom:6px">Contains "Metrics" + "All posts" sheets</div><input class="form-input" type="file" accept=".xlsx,.xls" id="file-content" onchange="fileChosen('file-content','ok-content')"/><div class="file-ok" id="ok-content"></div></div>
+        <div class="form-group"><label class="form-label">Followers XLS <span style="color:#aaa;font-weight:400">(optional)</span></label><div class="form-hint" style="margin-bottom:6px">Contains "New followers", "Location", "Seniority" etc.</div><input class="form-input" type="file" accept=".xlsx,.xls" id="file-followers" onchange="fileChosen('file-followers','ok-followers')"/><div class="file-ok" id="ok-followers"></div></div>
+      </div>
+      <div id="personal-files" style="display:none">
+        <div class="form-group"><label class="form-label">Personal Analytics XLS <span style="color:#e53e3e">*</span></label><div class="form-hint" style="margin-bottom:6px">Single file with Discovery, Engagement, Top Posts, Followers, Demographics sheets</div><input class="form-input" type="file" accept=".xlsx,.xls" id="file-personal" onchange="fileChosen('file-personal','ok-personal')"/><div class="file-ok" id="ok-personal"></div></div>
+      </div>
+      <div id="upload-error" style="background:#fff5f5;border:1px solid #fed7d7;border-radius:8px;padding:12px;color:#c53030;font-size:13px;margin-bottom:14px;display:none"></div>
+      <button onclick="handleUpload()" id="upload-btn" style="background:var(--primary);color:#fff;border:none;border-radius:10px;padding:13px 0;font-size:15px;font-weight:700;width:100%">Upload & Analyse →</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS VIEW -->
+  <div id="view-settings" style="display:none;max-width:480px">
+    <h2 style="color:#1a1a2e;margin-bottom:24px">Settings</h2>
+    <div class="card" style="margin-bottom:20px">
+      <div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:16px">🎨 Brand Colours</div>
+      <div class="form-group"><label class="form-label">Primary Colour</label><div style="display:flex;align-items:center;gap:12px"><input type="color" id="color-primary" onchange="updateBrand()" style="width:48px;height:48px;border:none;border-radius:8px;cursor:pointer"/><span id="color-primary-hex" style="font-size:14px;color:#666"></span></div></div>
+      <div class="form-group"><label class="form-label">Accent Colour</label><div style="display:flex;align-items:center;gap:12px"><input type="color" id="color-accent" onchange="updateBrand()" style="width:48px;height:48px;border:none;border-radius:8px;cursor:pointer"/><span id="color-accent-hex" style="font-size:14px;color:#666"></span></div></div>
+      <div style="padding:16px;background:#f8faff;border-radius:10px"><div style="font-size:12px;color:#888;margin-bottom:8px">Preview</div><div style="display:flex;gap:8px"><div id="preview-primary" style="padding:8px 16px;border-radius:6px;font-size:13px;color:#fff">Primary</div><div id="preview-accent" style="padding:8px 16px;border-radius:6px;font-size:13px;color:#fff">Accent</div></div></div>
+    </div>
+    <div class="card">
+      <div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:6px">🔗 Post Preview API</div>
+      <p style="font-size:13px;color:#888;margin-bottom:14px;line-height:1.6">Enables thumbnail + title previews on top posts. Get a free key at <a href="https://www.linkpreview.net" target="_blank" style="color:var(--primary)">linkpreview.net</a> (no credit card needed).</p>
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">LinkPreview API Key</label>
+        <input class="form-input" id="lp-key-input" type="password" placeholder="Paste your API key here"/>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button onclick="saveLpKey()" style="background:var(--primary);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600">Save Key</button>
+        <span id="lp-key-status" style="font-size:12px;color:#38a169"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUMULATIVE VIEW -->
+  <div id="view-cumulative" style="display:none">
+    <h2 style="color:#1a1a2e;margin-bottom:8px" id="cum-title">365-Day View</h2>
+    <p style="color:#888;margin-bottom:24px" id="cum-subtitle"></p>
+    <div id="cum-content"></div>
+  </div>
+
+  <!-- DASHBOARD VIEW -->
+  <div id="view-dashboard">
+    <div id="welcome" class="welcome">
+      <div class="icon">📊</div>
+      <h2 style="color:#1a1a2e;margin-bottom:8px">Welcome to LinkedIn Analytics</h2>
+      <p style="color:#888;margin-bottom:24px">Upload your first monthly report to get started</p>
+      <button onclick="setView('upload')" style="background:var(--primary);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:700">Upload Report</button>
+    </div>
+    <div id="dashboard-content" style="display:none">
+      <div class="report-header">
+        <div>
+          <div style="font-size:20px;font-weight:800" id="dash-title"></div>
+          <div style="font-size:13px;opacity:0.85;margin-top:3px" id="dash-subtitle"></div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <select id="month-select" onchange="switchMonth(this.value)" style="padding:7px 10px;border-radius:8px;border:none;font-size:13px;background:rgba(255,255,255,0.2);color:#fff;cursor:pointer"></select>
+          <button onclick="openReport()" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600">🖨 Print Report</button>
+        </div>
+      </div>
+      <!-- Manual followers for company -->
+      <div id="manual-followers-row" style="display:none;align-items:center;gap:12px;margin-bottom:24px;background:#fff;border-radius:12px;padding:14px 20px;box-shadow:0 2px 8px rgba(0,0,0,0.07)">
+        <span style="font-size:13px;font-weight:600;color:#444;white-space:nowrap">📌 Total Followers (manual):</span>
+        <input type="number" id="manual-followers-input" placeholder="e.g. 4823" oninput="saveManualFollowers()" style="padding:8px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;width:160px;background:#fafafa"/>
+        <span style="font-size:12px;color:#aaa">Enter current follower count from LinkedIn</span>
+      </div>
+      <div id="dash-stats" class="stats-row"></div>
+      <div id="dash-charts"></div>
+      <div id="dash-ai"></div>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT VIEW -->
+<div id="report-view">
+  <div class="report-toolbar no-print">
+    <span style="color:#fff;font-weight:600;font-size:14px" id="report-toolbar-title"></span>
+    <div style="display:flex;gap:10px">
+      <button onclick="closeReport()" style="background:transparent;color:#aaa;border:1px solid #444;border-radius:8px;padding:7px 16px;font-size:13px">✕ Close</button>
+      <button onclick="window.print()" style="background:var(--primary);color:#fff;border:none;border-radius:8px;padding:7px 20px;font-size:13px;font-weight:700">🖨 Print / Save as PDF</button>
+    </div>
+  </div>
+  <div class="report-body" id="report-body"></div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────
+const S = {
+  clients: JSON.parse(localStorage.getItem('li_clients_v6')||'{}'),
+  brand: JSON.parse(localStorage.getItem('li_brand_v6')||'{"primary":"#0077B5","accent":"#00A0DC"}'),
+  api: JSON.parse(localStorage.getItem('li_api_v6')||'{"key":"","provider":"anthropic","model":"claude-3-5-sonnet-20241022","endpoint":"https://api.anthropic.com/v1/messages"}'),
+  lpKey: localStorage.getItem('li_lp_key')||'',
+  lpCache: JSON.parse(localStorage.getItem('li_lp_cache')||'{}'),
+  activeClient: '',
+  activeMonth: '',
+  pageType: 'company',
+  currentView: 'dashboard'
+};
+
+function save(){ localStorage.setItem('li_clients_v6', JSON.stringify(S.clients)); }
+function saveBrand(){ localStorage.setItem('li_brand_v6', JSON.stringify(S.brand)); }
+function saveApi(){ localStorage.setItem('li_api_v6', JSON.stringify(S.api)); }
+
+// ── INIT ───────────────────────────────────────────────────────
+window.onload = () => {
+  applyBrand();
+  renderClientList();
+  const keys = Object.keys(S.clients);
+  if(keys.length){ S.activeClient = keys[0]; S.activeMonth = Object.keys(S.clients[keys[0]]).sort().pop(); renderDashboard(); }
+  document.getElementById('api-modal').style.display = 'flex';
+};
+
+// ── BRAND ──────────────────────────────────────────────────────
+function applyBrand(){
+  document.documentElement.style.setProperty('--primary', S.brand.primary);
+  document.documentElement.style.setProperty('--accent', S.brand.accent);
+  const cp = document.getElementById('color-primary'), ca = document.getElementById('color-accent');
+  if(cp){ cp.value = S.brand.primary; document.getElementById('color-primary-hex').textContent = S.brand.primary; }
+  if(ca){ ca.value = S.brand.accent; document.getElementById('color-accent-hex').textContent = S.brand.accent; }
+  const pp = document.getElementById('preview-primary'), pa = document.getElementById('preview-accent');
+  if(pp){ pp.style.background = S.brand.primary; pa.style.background = S.brand.accent; }
+  const lpInput = document.getElementById('lp-key-input');
+  if(lpInput && S.lpKey) lpInput.value = S.lpKey;
+}
+function updateBrand(){
+  S.brand.primary = document.getElementById('color-primary').value;
+  S.brand.accent = document.getElementById('color-accent').value;
+  saveBrand(); applyBrand();
+}
+
+// ── LINKPREVIEW KEY ────────────────────────────────────────────
+function saveLpKey(){
+  const key = document.getElementById('lp-key-input').value.trim();
+  S.lpKey = key;
+  localStorage.setItem('li_lp_key', key);
+  const st = document.getElementById('lp-key-status');
+  st.textContent = key ? '✓ Key saved' : 'Key cleared';
+  setTimeout(()=>st.textContent='', 2500);
+}
+
+async function fetchLinkPreview(url){
+  if(!S.lpKey || !url) return null;
+  if(S.lpCache[url]) return S.lpCache[url];
+  try {
+    const res = await fetch(`https://api.linkpreview.net/?key=${S.lpKey}&q=${encodeURIComponent(url)}`);
+    if(!res.ok) return null;
+    const data = await res.json();
+    if(data.error) return null;
+    const preview = {title: data.title||'', image: data.image||'', description: data.description||''};
+    S.lpCache[url] = preview;
+    localStorage.setItem('li_lp_cache', JSON.stringify(S.lpCache));
+    return preview;
+  } catch(e){ return null; }
+}
+
+// ── API KEY ────────────────────────────────────────────────────
+function showApiModal(){ document.getElementById('api-modal').style.display='flex'; }
+function saveApiKey(){ document.getElementById('api-modal').style.display='none'; }
+function skipApiKey(){ document.getElementById('api-modal').style.display='none'; }
+
+// ── VIEWS ──────────────────────────────────────────────────────
+function setView(v){
+  ['dashboard','upload','settings','cumulative'].forEach(id => document.getElementById('view-'+id).style.display='none');
+  document.getElementById('view-'+v).style.display = 'block';
+  ['dashboard','cumulative','settings'].forEach(id => document.getElementById('nav-'+id)?.classList.remove('active'));
+  if(document.getElementById('nav-'+v)) document.getElementById('nav-'+v).classList.add('active');
+  S.currentView = v;
+  if(v==='cumulative') renderCumulative();
+  if(v==='settings') applyBrand();
+}
+
+// ── CLIENT LIST ────────────────────────────────────────────────
+function renderClientList(){
+  const el = document.getElementById('client-list');
+  el.innerHTML = Object.keys(S.clients).map(c =>
+    `<button class="client-btn${S.activeClient===c?' active':''}" onclick="selectClient('${c}')">${c}</button>`
+  ).join('');
+}
+function selectClient(c){
+  S.activeClient = c;
+  S.activeMonth = Object.keys(S.clients[c]).sort().pop();
+  renderClientList();
+  setView('dashboard');
+  renderDashboard();
+}
+
+// ── UPLOAD ─────────────────────────────────────────────────────
+function selectType(t){
+  S.pageType = t;
+  document.getElementById('type-company').classList.toggle('active', t==='company');
+  document.getElementById('type-personal').classList.toggle('active', t==='personal');
+  document.getElementById('company-files').style.display = t==='company'?'block':'none';
+  document.getElementById('personal-files').style.display = t==='personal'?'block':'none';
+}
+function fileChosen(inputId, okId){
+  const f = document.getElementById(inputId).files[0];
+  document.getElementById(okId).textContent = f ? '✓ '+f.name : '';
+}
+async function handleUpload(){
+  const clientName = document.getElementById('up-client').value.trim();
+  const month = document.getElementById('up-month').value;
+  const errEl = document.getElementById('upload-error');
+  errEl.style.display='none';
+  if(!clientName||!month){ errEl.textContent='Enter client name and month.'; errEl.style.display='block'; return; }
+  const btn = document.getElementById('upload-btn');
+  btn.textContent='Parsing & Analysing...'; btn.disabled=true;
+  try{
+    let entry = {type:S.pageType, month};
+    if(S.pageType==='company'){
+      const cf = document.getElementById('file-content').files[0];
+      if(!cf){ errEl.textContent='Upload Content XLS.'; errEl.style.display='block'; btn.textContent='Upload & Analyse →'; btn.disabled=false; return; }
+      const content = parseCompanyContent(readWb(await cf.arrayBuffer()));
+      let followers = {newFollowers:[],totalFollowers:0,byLocation:[],byJobFunction:[],bySeniority:[],byIndustry:[],byCompanySize:[]};
+      const ff = document.getElementById('file-followers').files[0];
+      if(ff) followers = parseCompanyFollowers(readWb(await ff.arrayBuffer()));
+      entry.summary = summariseCompany(content, followers);
+    } else {
+      const pf = document.getElementById('file-personal').files[0];
+      if(!pf){ errEl.textContent='Upload Personal analytics file.'; errEl.style.display='block'; btn.textContent='Upload & Analyse →'; btn.disabled=false; return; }
+      entry.personal = parsePersonal(readWb(await pf.arrayBuffer()));
+    }
+    if(!S.clients[clientName]) S.clients[clientName]={};
+    S.clients[clientName][month] = entry;
+    save();
+    S.activeClient = clientName; S.activeMonth = month;
+    renderClientList();
+    setView('dashboard');
+    renderDashboard();
+  } catch(e){
+    errEl.textContent='Parse error: '+e.message; errEl.style.display='block';
+  }
+  btn.textContent='Upload & Analyse →'; btn.disabled=false;
+}
+
+// ── PARSERS ────────────────────────────────────────────────────
+function readWb(buf){ return XLSX.read(buf,{type:'array'}); }
+function getRaw(wb,name){
+  const m = wb.SheetNames.find(s=>s.toLowerCase().trim()===name.toLowerCase().trim());
+  if(!m) return [];
+  return XLSX.utils.sheet_to_json(wb.Sheets[m],{header:1,defval:''});
+}
+function rawToObjects(raw,hr){
+  if(raw.length<=hr) return [];
+  const headers = raw[hr].map(h=>String(h).trim());
+  return raw.slice(hr+1).map(row=>{const o={};headers.forEach((h,i)=>o[h]=row[i]??'');return o;}).filter(r=>Object.values(r).some(v=>v!==''&&v!==null));
+}
+function fmtD(raw){ if(!raw) return ''; const d=new Date(raw); if(isNaN(d)) return String(raw); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); }
+function fmtMonth(ym){ if(!ym) return ''; const [y,m]=ym.split('-'); return new Date(+y,+m-1,1).toLocaleString('default',{month:'long',year:'numeric'}); }
+function n(v){ return Number(v)||0; }
+
+function parsePersonal(wb){
+  const disc=getRaw(wb,'DISCOVERY');
+  let impressions=0,membersReached=0;
+  disc.forEach(r=>{ const k=String(r[0]||'').toLowerCase(); if(k.includes('impression')) impressions=n(r[1]); if(k.includes('member')) membersReached=n(r[1]); });
+  const engagement=rawToObjects(getRaw(wb,'ENGAGEMENT'),0).map(r=>({date:fmtD(r['Date']),impressions:n(r['Impressions']),engagements:n(r['Engagements'])})).filter(r=>r.date);
+  const topRaw=getRaw(wb,'TOP POSTS');
+  const topByEng=[],topByImp=[];
+  for(let i=3;i<topRaw.length;i++){ const r=topRaw[i]; if(r[0]) topByEng.push({url:String(r[0]),publishDate:String(r[1]),engagements:n(r[2])}); if(r[4]) topByImp.push({url:String(r[4]),publishDate:String(r[5]),impressions:n(r[6])}); }
+  const follRaw=getRaw(wb,'FOLLOWERS');
+  let totalFollowers=0;
+  if(follRaw[0]) totalFollowers=n(follRaw[0][1])||n(String(follRaw[0][0]).replace(/[^0-9]/g,''));
+  const follByDate=rawToObjects(follRaw,2).map(r=>({date:fmtD(r['Date']),newFollowers:n(r['New followers'])})).filter(r=>r.date);
+  const demObjects=rawToObjects(getRaw(wb,'DEMOGRAPHICS'),0);
+  const demGroups={};
+  const cats=['Job titles','Locations','Industries','Seniority','Company size','Companies'];
+  let cur='';
+  demObjects.forEach(r=>{ const k=String(r['Top Demographics']||'').trim(); if(cats.includes(k)){cur=k;if(!demGroups[cur])demGroups[cur]=[];} else if(cur&&k) demGroups[cur].push({name:k,value:r['Value']||'',pct:r['Percentage']||''}); });
+  const totalImp=impressions||engagement.reduce((s,r)=>s+r.impressions,0);
+  const totalEng=engagement.reduce((s,r)=>s+r.engagements,0);
+  const engRate=totalImp>0?((totalEng/totalImp)*100).toFixed(2):'0.00';
+  return {impressions:totalImp,membersReached,engagement,topByEng,topByImp,totalFollowers,follByDate,demographics:demGroups,totalEngagements:totalEng,engRate};
+}
+
+function parseCompanyContent(wb){
+  const metrics=rawToObjects(getRaw(wb,'Metrics'),1).map(r=>({date:fmtD(r['Date']),impressionsOrganic:n(r['Impressions (organic)']),clicks:n(r['Clicks (organic)']),reactions:n(r['Reactions (organic)']),comments:n(r['Comments (organic)']),reposts:n(r['Reposts (organic)']),engRateOrganic:parseFloat(r['Engagement rate (organic)'])||0})).filter(r=>r.date);
+  const posts=rawToObjects(getRaw(wb,'All posts'),1).filter(r=>String(r['Post type']||'').toLowerCase()==='organic').map(r=>({link:r['Post link']||'',postedBy:r['Posted by']||'',createdDate:r['Created date']||'',impressions:n(r['Impressions']),clicks:n(r['Clicks']),likes:n(r['Likes']),comments:n(r['Comments']),reposts:n(r['Reposts']),engRate:parseFloat(r['Engagement rate'])||0}));
+  return {metrics,posts};
+}
+
+function parseCompanyFollowers(wb){
+  const nfObjs=rawToObjects(getRaw(wb,'New followers'),0);
+  const newFollowers=nfObjs.map(r=>({date:fmtD(r['Date']),organic:n(r['Organic followers']),sponsored:n(r['Sponsored followers']),autoInvited:n(r['Auto-invited followers']),total:n(r['Total followers'])})).filter(r=>r.date);
+  const last=newFollowers[newFollowers.length-1];
+  const totalFollowers=last&&last.total>0?last.total:newFollowers.reduce((s,r)=>s+r.organic+r.sponsored+r.autoInvited,0);
+  const topN=(sheet,key,nn)=>rawToObjects(getRaw(wb,sheet),0).slice(0,nn).map(r=>({name:String(r[key]||''),total:n(r['Total followers'])}));
+  return {newFollowers,totalFollowers,byLocation:topN('Location','Location',10),byJobFunction:topN('Job function','Job function',8),bySeniority:topN('Seniority','Seniority',10),byIndustry:topN('Industry','Industry',10),byCompanySize:topN('Company size','Company size',9)};
+}
+
+function summariseCompany(content,followers){
+  const {metrics,posts}=content;
+  const totalImpressions=metrics.reduce((s,r)=>s+r.impressionsOrganic,0);
+  const totalEngagements=posts.reduce((s,p)=>s+p.likes+p.comments+p.reposts,0);
+  const engRate=totalImpressions>0?((totalEngagements/totalImpressions)*100).toFixed(2):'0.00';
+  const totalNewFollowers=(followers?.newFollowers||[]).reduce((s,r)=>s+r.organic+r.sponsored+r.autoInvited,0);
+  const totalFollowers=followers?.totalFollowers||0;
+  const top5=[...posts].sort((a,b)=>b.impressions-a.impressions).slice(0,5);
+  const impressionTrend=metrics.map(r=>({date:r.date,impressions:r.impressionsOrganic}));
+  const followerTrend=(followers?.newFollowers||[]).map(r=>({date:r.date,organic:r.organic}));
+  return {totalImpressions,totalEngagements,engRate,totalNewFollowers,totalFollowers,top5,impressionTrend,followerTrend,followers};
+}
+
+// ── DASHBOARD RENDER ───────────────────────────────────────────
+function renderDashboard(){
+  if(!S.activeClient||!S.clients[S.activeClient]){ document.getElementById('welcome').style.display='block'; document.getElementById('dashboard-content').style.display='none'; return; }
+  document.getElementById('welcome').style.display='none';
+  document.getElementById('dashboard-content').style.display='block';
+  const entry = S.clients[S.activeClient][S.activeMonth];
+  if(!entry) return;
+  const isCompany = entry.type==='company';
+  document.getElementById('dash-title').textContent = S.activeClient;
+  document.getElementById('dash-subtitle').textContent = (isCompany?'🏢 Company Page':'👤 Personal Profile')+' — '+fmtMonth(S.activeMonth);
+  const ms = document.getElementById('month-select');
+  const months = Object.keys(S.clients[S.activeClient]).sort();
+  ms.innerHTML = months.map(m=>`<option value="${m}"${m===S.activeMonth?' selected':''}>${fmtMonth(m)}</option>`).join('');
+  ms.style.display = months.length>1?'block':'none';
+  const mfRow = document.getElementById('manual-followers-row');
+  mfRow.style.display = isCompany?'flex':'none';
+  if(isCompany) document.getElementById('manual-followers-input').value = entry.manualFollowers||'';
+  const totalFollowers = isCompany?(entry.manualFollowers||entry.summary?.totalFollowers||0):entry.personal?.totalFollowers||0;
+  const stats = isCompany?[
+    ['Impressions (Organic)',(entry.summary?.totalImpressions||0).toLocaleString()],
+    ['Total Engagements',(entry.summary?.totalEngagements||0).toLocaleString()],
+    ['Engagement Rate',(entry.summary?.engRate||0)+'%'],
+    ['New Followers',(entry.summary?.totalNewFollowers||0).toLocaleString()],
+    ['Total Followers',totalFollowers.toLocaleString()],
+  ]:[
+    ['Impressions',(entry.personal?.impressions||0).toLocaleString()],
+    ['Members Reached',(entry.personal?.membersReached||0).toLocaleString()],
+    ['Total Engagements',(entry.personal?.totalEngagements||0).toLocaleString()],
+    ['Engagement Rate',(entry.personal?.engRate||0)+'%'],
+    ['Total Followers',totalFollowers.toLocaleString()],
+  ];
+  document.getElementById('dash-stats').innerHTML = stats.map(([l,v])=>`<div class="stat-card"><div class="stat-label">${l}</div><div class="stat-value">${v}</div></div>`).join('');
+  renderCharts(entry, isCompany);
+}
+
+function switchMonth(m){ S.activeMonth=m; renderDashboard(); }
+function saveManualFollowers(){
+  const val = parseInt(document.getElementById('manual-followers-input').value)||0;
+  S.clients[S.activeClient][S.activeMonth].manualFollowers = val;
+  save();
+  document.querySelectorAll('.stat-card')[4].querySelector('.stat-value').textContent = val.toLocaleString();
+}
+
+// ── CHARTS ────────────────────────────────────────────────────
+function renderCharts(entry, isCompany){
+  const el = document.getElementById('dash-charts');
+  el.innerHTML='';
+  if(isCompany && entry.summary){
+    const s = entry.summary;
+    if(s.impressionTrend?.length>1) el.appendChild(makeLineChart('Daily Impressions (Organic)', s.impressionTrend, 'date', 'impressions', S.brand.primary));
+    if(s.followerTrend?.length>1) el.appendChild(makeBarChart('Daily Follower Gains', s.followerTrend, 'date', 'organic', S.brand.primary));
+    if(s.followers){
+      const demGrid = document.createElement('div'); demGrid.className='grid-2';
+      if(s.followers.byLocation?.length) demGrid.appendChild(makeDemCard('Top Locations', s.followers.byLocation.slice(0,8), 'total', S.brand.primary));
+      if(s.followers.bySeniority?.length) demGrid.appendChild(makeDemCard('By Seniority', s.followers.bySeniority, 'total', S.brand.accent));
+      if(s.followers.byJobFunction?.length) demGrid.appendChild(makeDemCard('Job Functions', s.followers.byJobFunction, 'total', S.brand.primary));
+      if(s.followers.byIndustry?.length) demGrid.appendChild(makeDemCard('Top Industries', s.followers.byIndustry.slice(0,8), 'total', S.brand.accent));
+      if(demGrid.children.length) el.appendChild(demGrid);
+    }
+    if(s.top5?.length) el.appendChild(makePostsTable(s.top5, isCompany));
+  } else if(!isCompany && entry.personal){
+    const pd = entry.personal;
+    if(pd.engagement?.length>1) el.appendChild(makeDualLineChart('Daily Impressions & Engagements', pd.engagement, 'date', 'impressions', 'engagements', S.brand.primary, S.brand.accent));
+    if(pd.follByDate?.length>1) el.appendChild(makeBarChart('New Followers by Date', pd.follByDate, 'date', 'newFollowers', S.brand.primary));
+    const demGrid = document.createElement('div'); demGrid.className='grid-2';
+    if(pd.demographics?.['Job titles']?.length) demGrid.appendChild(makeDemCard('Top Job Titles', pd.demographics['Job titles'], 'pct', S.brand.primary));
+    if(pd.demographics?.['Locations']?.length) demGrid.appendChild(makeDemCard('Top Locations', pd.demographics['Locations'], 'pct', S.brand.accent));
+    if(pd.demographics?.['Industries']?.length) demGrid.appendChild(makeDemCard('Top Industries', pd.demographics['Industries'], 'pct', S.brand.primary));
+    if(pd.demographics?.['Seniority']?.length) demGrid.appendChild(makeDemCard('Seniority', pd.demographics['Seniority'], 'pct', S.brand.accent));
+    if(demGrid.children.length) el.appendChild(demGrid);
+    if(pd.topByEng?.length || pd.topByImp?.length){
+      if(pd.topByEng?.length) el.appendChild(makeTopPostsPersonalCards('Top Posts by Engagements', pd.topByEng.slice(0,6), 'engagements'));
+      if(pd.topByImp?.length) el.appendChild(makeTopPostsPersonalCards('Top Posts by Impressions', pd.topByImp.slice(0,6), 'impressions'));
+    }
+  }
+}
+
+// ── SVG CHART HELPERS ─────────────────────────────────────────
+// FIX: svgChart now uses overflow:visible on wrapper and no fixed height clipping
+function svgChart(title, svgContent){
+  const card = document.createElement('div');
+  card.className='card';
+  card.style.overflow='visible';
+  card.innerHTML=`<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:16px">${title}</div><div style="width:100%;overflow:visible">${svgContent}</div>`;
+  return card;
+}
+
+function makeLineChart(title, data, xKey, yKey, color){
+  const W=700,H=180,pad={t:10,r:20,b:40,l:60};
+  const vals=data.map(d=>d[yKey]);
+  const maxV=Math.max(...vals,1);
+  const xs=data.map((_,i)=>pad.l+(i/(data.length-1||1))*(W-pad.l-pad.r));
+  const ys=data.map(d=>H-pad.b-(d[yKey]/maxV)*(H-pad.t-pad.b));
+  const path='M'+xs.map((x,i)=>`${x},${ys[i]}`).join('L');
+  const ticks=data.filter((_,i)=>i%(Math.ceil(data.length/8))===0);
+  const ticksXml=ticks.map(d=>{const i=data.indexOf(d);return`<text x="${xs[i]}" y="${H-pad.b+14}" text-anchor="middle" font-size="9" fill="#999">${d[xKey]}</text>`;}).join('');
+  const yTicks=[0,0.25,0.5,0.75,1].map(p=>{const v=Math.round(maxV*p);const y=H-pad.b-p*(H-pad.t-pad.b);return`<text x="${pad.l-6}" y="${y+4}" text-anchor="end" font-size="9" fill="#999">${v>=1000?(v/1000).toFixed(0)+'k':v}</text><line x1="${pad.l}" y1="${y}" x2="${W-pad.r}" y2="${y}" stroke="#f0f0f0" stroke-width="1"/>`;}).join('');
+  // FIX: viewBox height includes bottom label space; overflow visible
+  const svg=`<svg viewBox="0 0 ${W} ${H+10}" width="100%" style="overflow:visible;display:block">${yTicks}${ticksXml}<path d="${path}" fill="none" stroke="${color}" stroke-width="2.5"/></svg>`;
+  return svgChart(title, svg);
+}
+
+function makeDualLineChart(title, data, xKey, y1Key, y2Key, c1, c2){
+  const W=700,H=180,pad={t:10,r:20,b:50,l:60};
+  const v1=data.map(d=>d[y1Key]),v2=data.map(d=>d[y2Key]);
+  const maxV=Math.max(...v1,...v2,1);
+  const xs=data.map((_,i)=>pad.l+(i/(data.length-1||1))*(W-pad.l-pad.r));
+  const p1='M'+xs.map((x,i)=>`${x},${H-pad.b-(v1[i]/maxV)*(H-pad.t-pad.b)}`).join('L');
+  const p2='M'+xs.map((x,i)=>`${x},${H-pad.b-(v2[i]/maxV)*(H-pad.t-pad.b)}`).join('L');
+  const ticks=data.filter((_,i)=>i%(Math.ceil(data.length/8))===0);
+  const ticksXml=ticks.map(d=>{const i=data.indexOf(d);return`<text x="${xs[i]}" y="${H-pad.b+14}" text-anchor="middle" font-size="9" fill="#999">${d[xKey]}</text>`;}).join('');
+  // FIX: legend moved inside viewBox height; increased H+20 to fit
+  const legend=`<text x="${pad.l}" y="${H-pad.b+30}" font-size="10" fill="${c1}">● ${y1Key}</text><text x="${pad.l+120}" y="${H-pad.b+30}" font-size="10" fill="${c2}">● ${y2Key}</text>`;
+  const yTicks=[0,0.25,0.5,0.75,1].map(p=>{const v=Math.round(maxV*p);const y=H-pad.b-p*(H-pad.t-pad.b);return`<text x="${pad.l-6}" y="${y+4}" text-anchor="end" font-size="9" fill="#999">${v>=1000?(v/1000).toFixed(0)+'k':v}</text><line x1="${pad.l}" y1="${y}" x2="${W-pad.r}" y2="${y}" stroke="#f0f0f0" stroke-width="1"/>`;}).join('');
+  // FIX: viewBox now tall enough to include legend row
+  const svg=`<svg viewBox="0 0 ${W} ${H+20}" width="100%" style="overflow:visible;display:block">${yTicks}<line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H-pad.b}" stroke="#f0f0f0"/>${ticksXml}<path d="${p1}" fill="none" stroke="${c1}" stroke-width="2.5"/><path d="${p2}" fill="none" stroke="${c2}" stroke-width="2.5"/>${legend}</svg>`;
+  return svgChart(title, svg);
+}
+
+function makeBarChart(title, data, xKey, yKey, color){
+  const W=700,H=160,pad={t:10,r:20,b:40,l:60};
+  const vals=data.map(d=>d[yKey]);
+  const maxV=Math.max(...vals,1);
+  const bw=Math.max(2,(W-pad.l-pad.r)/data.length-2);
+  const bars=data.map((d,i)=>{const x=pad.l+i*((W-pad.l-pad.r)/data.length);const h=(d[yKey]/maxV)*(H-pad.t-pad.b);const y=H-pad.b-h;return`<rect x="${x}" y="${y}" width="${bw}" height="${h}" fill="${color}" rx="2"/>`;}).join('');
+  const ticks=data.filter((_,i)=>i%(Math.ceil(data.length/8))===0);
+  const ticksXml=ticks.map(d=>{const i=data.indexOf(d);const x=pad.l+i*((W-pad.l-pad.r)/data.length);return`<text x="${x+bw/2}" y="${H-pad.b+14}" text-anchor="middle" font-size="9" fill="#999">${d[xKey]}</text>`;}).join('');
+  const yTicks=[0,0.25,0.5,0.75,1].map(p=>{const v=Math.round(maxV*p);const y=H-pad.b-p*(H-pad.t-pad.b);return`<text x="${pad.l-6}" y="${y+4}" text-anchor="end" font-size="9" fill="#999">${v>=1000?(v/1000).toFixed(1)+'k':v}</text><line x1="${pad.l}" y1="${y}" x2="${W-pad.r}" y2="${y}" stroke="#f0f0f0" stroke-width="1"/>`;}).join('');
+  const svg=`<svg viewBox="0 0 ${W} ${H+10}" width="100%" style="overflow:visible;display:block"><line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H-pad.b}" stroke="#e0e0e0" stroke-width="1"/>${yTicks}${bars}${ticksXml}</svg>`;
+  return svgChart(title, svg);
+}
+
+function makeDemCard(title, items, valKey, color){
+  const card=document.createElement('div'); card.className='card';
+  const rows=items.map(d=>`<div class="dem-row"><span style="color:#444">${d.name}</span><span style="font-weight:600;color:${color}">${d[valKey]}</span></div>`).join('');
+  card.innerHTML=`<div style="font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:12px">${title}</div>${rows}`;
+  return card;
+}
+
+function makePostsTable(posts, isCompany){
+  const card=document.createElement('div'); card.className='card';
+  const noKey = !S.lpKey;
+  const notice = noKey ? `<div class="lp-key-notice" style="margin-bottom:16px">🔗 <span>Add a <strong>LinkPreview API key</strong> in <a href="#" onclick="setView('settings')" style="color:var(--primary)">Settings</a> to see post thumbnails & titles.</span></div>` : '';
+  card.innerHTML=`<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:12px">Top Posts (Organic)</div>${notice}<div class="posts-preview-grid" id="posts-grid-company"></div>`;
+  // Render skeleton cards immediately
+  const grid = card.querySelector('#posts-grid-company');
+  posts.forEach((p,i) => {
+    const pc = document.createElement('div'); pc.className='post-preview-card';
+    pc.id = 'pcard-c-'+i;
+    pc.innerHTML = buildPostCardHTML(p, i, null, 'company');
+    grid.appendChild(pc);
+  });
+  // Async load previews if key set
+  if(S.lpKey){
+    posts.forEach((p,i) => {
+      if(!p.link) return;
+      fetchLinkPreview(p.link).then(preview => {
+        const el = document.getElementById('pcard-c-'+i);
+        if(el && preview) el.innerHTML = buildPostCardHTML(p, i, preview, 'company');
+      });
+    });
+  }
+  return card;
+}
+
+function makeTopPostsPersonalCards(title, posts, valKey){
+  const card=document.createElement('div'); card.className='card';
+  const noKey = !S.lpKey;
+  const notice = noKey ? `<div class="lp-key-notice" style="margin-bottom:12px">🔗 <span>Add a <strong>LinkPreview API key</strong> in <a href="#" onclick="setView('settings')" style="color:var(--primary)">Settings</a> to load post previews.</span></div>` : '';
+  const gridId = 'posts-grid-p-'+valKey;
+  card.innerHTML=`<div style="font-size:14px;font-weight:700;margin-bottom:12px">${title}</div>${notice}<div class="posts-preview-grid" id="${gridId}"></div>`;
+  const grid = card.querySelector('#'+gridId);
+  posts.forEach((p,i) => {
+    const pc = document.createElement('div'); pc.className='post-preview-card';
+    pc.id = 'pcard-p-'+valKey+'-'+i;
+    pc.innerHTML = buildPostCardHTML(p, i, null, 'personal', valKey);
+    grid.appendChild(pc);
+  });
+  if(S.lpKey){
+    posts.forEach((p,i) => {
+      const url = p.url;
+      if(!url) return;
+      fetchLinkPreview(url).then(preview => {
+        const el = document.getElementById('pcard-p-'+valKey+'-'+i);
+        if(el && preview) el.innerHTML = buildPostCardHTML(p, i, preview, 'personal', valKey);
+      });
+    });
+  }
+  return card;
+}
+
+function buildPostCardHTML(p, i, preview, type, valKey){
+  const url = type==='company' ? p.link : p.url;
+  const imgHtml = (preview && preview.image)
+    ? `<img class="post-preview-img" src="${preview.image}" alt="" onerror="this.parentElement.innerHTML='<div class=\'post-preview-img-placeholder\'>📝</div>'">`
+    : `<div class="post-preview-img-placeholder">📝</div>`;
+  const titleHtml = (preview && preview.title)
+    ? `<div class="post-preview-title">${preview.title}</div>`
+    : `<div class="post-preview-title" style="color:#aaa;font-style:italic">Post ${i+1}${S.lpKey ? ' — loading preview…' : ''}</div>`;
+  let statsHtml = '';
+  if(type==='company'){
+    statsHtml = `
+      <div class="post-preview-stats">
+        <div class="post-preview-stat">👁 <span>${(p.impressions||0).toLocaleString()}</span></div>
+        <div class="post-preview-stat">❤️ <span>${p.likes||0}</span></div>
+        <div class="post-preview-stat">💬 <span>${p.comments||0}</span></div>
+        <div class="post-preview-stat">🔁 <span>${p.reposts||0}</span></div>
+        <div class="post-preview-stat">📊 <span>${((p.engRate||0)*100).toFixed(2)}%</span></div>
+      </div>`;
+  } else {
+    const val = p[valKey]||0;
+    const label = valKey==='engagements' ? '🤝' : '👁';
+    statsHtml = `<div class="post-preview-stats"><div class="post-preview-stat">${label} <span>${val.toLocaleString()}</span></div></div>`;
+  }
+  const date = type==='company' ? (p.createdDate||'') : (p.publishDate||'');
+  return `
+    ${imgHtml}
+    <div class="post-preview-body">
+      ${titleHtml}
+      ${statsHtml}
+    </div>
+    <div class="post-preview-footer">
+      <span class="post-preview-date">${date}</span>
+      ${url ? `<a href="${url}" target="_blank" class="post-preview-link" style="background:var(--primary)">View Post →</a>` : ''}
+    </div>`;
+}
+
+function makeTopPostsPersonal(title, posts, valKey){
+  const card=document.createElement('div'); card.className='card';
+  const rows=posts.map((p,i)=>`<tr><td><a href="${p.url}" target="_blank" style="color:${S.brand.primary}">Post ${i+1}</a></td><td>${p.publishDate}</td><td style="font-weight:700">${p[valKey]}</td></tr>`).join('');
+  card.innerHTML=`<div style="font-size:14px;font-weight:700;margin-bottom:12px">${title}</div><table><thead><tr><th>Post</th><th>Date</th><th>${valKey==='engagements'?'Eng.':'Imp.'}</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return card;
+}
+
+// ── AI ─────────────────────────────────────────────────────────
+function renderAI(entry){
+  const el=document.getElementById('dash-ai');
+  if(!S.api.key){ el.innerHTML=`<div class="card" style="color:#888;font-size:13px">🔑 <a href="#" onclick="showApiModal()" style="color:${S.brand.primary}">Add an API key</a> to generate AI commentary and recommendations.</div>`; return; }
+  el.innerHTML=`<div class="card"><div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:8px">🤖 Monthly Commentary</div><div class="ai-box" id="ai-commentary"><span style="color:#888;font-style:italic;font-size:13px">Generating analysis...</span></div></div><div class="card"><div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:4px">💡 Strategic Recommendations</div><div style="font-size:12px;color:#aaa;margin-bottom:8px">Gets sharper with more months of data</div><div class="ai-box" id="ai-recs"><span style="color:#888;font-style:italic;font-size:13px">Generating recommendations...</span></div></div>`;
+  if(entry._aiCommentary) renderMD('ai-commentary', entry._aiCommentary);
+  if(entry._aiRecs) renderMD('ai-recs', entry._aiRecs);
+}
+
+function renderMD(elId, text){
+  const el=document.getElementById(elId);
+  if(!el||!text) return;
+  let html='';
+  text.split('\n').forEach(line=>{
+    if(line.startsWith('## ')) html+=`<h3>${line.slice(3)}</h3>`;
+    else if(line.startsWith('### ')) html+=`<h4>${line.slice(4)}</h4>`;
+    else if(line.match(/^[\-\*] /)) html+=`<li>${line.slice(2).replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</li>`;
+    else if(!line.trim()) html+='<br/>';
+    else html+=`<p>${line.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</p>`;
+  });
+  html = html.replace(/(<li>[\s\S]*?<\/li>)(\s*<li>[\s\S]*?<\/li>)*/g, m=>`<ul>${m}</ul>`);
+  el.innerHTML=html;
+}
+
+// ── CUMULATIVE ─────────────────────────────────────────────────
+function renderCumulative(){
+  if(!S.activeClient){ document.getElementById('cum-content').innerHTML='<div class="card" style="color:#888">No client selected.</div>'; return; }
+  const data=S.clients[S.activeClient];
+  const months=Object.keys(data).sort();
+  document.getElementById('cum-title').textContent='365-Day View — '+S.activeClient;
+  document.getElementById('cum-subtitle').textContent=months.length+' month(s) of data';
+  if(months.length<2){ document.getElementById('cum-content').innerHTML='<div class="card" style="color:#888">Upload at least 2 months to see trends.</div>'; return; }
+  const cumData=months.map(m=>{const d=data[m];return{month:fmtMonth(m).split(' ')[0].slice(0,3)+' '+fmtMonth(m).split(' ')[1],impressions:d.type==='company'?(d.summary?.totalImpressions||0):(d.personal?.impressions||0),engRate:parseFloat(d.type==='company'?(d.summary?.engRate||0):(d.personal?.engRate||0))};});
+  const el=document.getElementById('cum-content');
+  el.innerHTML='';
+  el.appendChild(makeLineChart('Impressions Over Time', cumData, 'month', 'impressions', S.brand.primary));
+  el.appendChild(makeLineChart('Engagement Rate % Over Time', cumData, 'month', 'engRate', S.brand.accent));
+}
+
+// ── PRINT REPORT ───────────────────────────────────────────────
+async function openReport(){
+  const entry=S.clients[S.activeClient]?.[S.activeMonth];
+  if(!entry) return;
+
+  // Show loading state on button
+  const printBtn = document.querySelector('button[onclick="openReport()"]');
+  const origText = printBtn?.textContent;
+  if(printBtn){ printBtn.textContent = '⏳ Loading previews…'; printBtn.disabled = true; }
+
+  const isCompany=entry.type==='company';
+  const s=isCompany?entry.summary:entry.personal;
+  const monthLabel=fmtMonth(S.activeMonth);
+
+  // ── Pre-fetch ALL preview data before building the report ──
+  const previewMap = {}; // url -> preview object
+  if(S.lpKey){
+    const urlsToFetch = [];
+    if(isCompany && s?.top5?.length) s.top5.forEach(p=>{ if(p.link) urlsToFetch.push(p.link); });
+    if(!isCompany){
+      (s?.topByEng||[]).slice(0,6).forEach(p=>{ if(p.url) urlsToFetch.push(p.url); });
+      (s?.topByImp||[]).slice(0,6).forEach(p=>{ if(p.url) urlsToFetch.push(p.url); });
+    }
+    // Fetch all in parallel, wait for every one to resolve
+    const unique = [...new Set(urlsToFetch)];
+    await Promise.all(unique.map(async url => {
+      const preview = await fetchLinkPreview(url);
+      if(preview) previewMap[url] = preview;
+    }));
+  }
+
+  // Restore button
+  if(printBtn){ printBtn.textContent = origText; printBtn.disabled = false; }
+
+  const totalFollowers=isCompany?(entry.manualFollowers||s.totalFollowers||0):s.totalFollowers;
+  const stats=isCompany?[
+    ['Impressions (Organic)',(s.totalImpressions||0).toLocaleString()],
+    ['Total Engagements',(s.totalEngagements||0).toLocaleString()],
+    ['Engagement Rate',(s.engRate||0)+'%'],
+    ['New Followers',(s.totalNewFollowers||0).toLocaleString()],
+    ['Total Followers',totalFollowers.toLocaleString()]
+  ]:[
+    ['Impressions',(s.impressions||0).toLocaleString()],
+    ['Members Reached',(s.membersReached||0).toLocaleString()],
+    ['Total Engagements',(s.totalEngagements||0).toLocaleString()],
+    ['Engagement Rate',(s.engRate||0)+'%'],
+    ['Total Followers',totalFollowers.toLocaleString()]
+  ];
+
+  document.getElementById('report-toolbar-title').textContent=`${S.activeClient} · ${monthLabel}`;
+  const body=document.getElementById('report-body');
+  body.innerHTML='';
+
+  // Header
+  const hdr=document.createElement('div');
+  hdr.style.cssText=`background:linear-gradient(135deg,${S.brand.primary},${S.brand.accent});border-radius:16px;padding:32px 36px;color:#fff;margin-bottom:32px;-webkit-print-color-adjust:exact;print-color-adjust:exact`;
+  hdr.innerHTML=`<div style="font-size:28px;font-weight:800;margin-bottom:6px;color:#fff">${S.activeClient}</div><div style="font-size:15px;color:#fff;opacity:0.9">${isCompany?'Company Page':'Personal Profile'} — ${monthLabel} LinkedIn Report</div>`;
+  body.appendChild(hdr);
+
+  // Stats
+  const sr=document.createElement('div'); sr.className='stats-row'; sr.style.marginBottom='32px';
+  stats.forEach(([l,v])=>{ const c=document.createElement('div'); c.className='stat-card'; c.innerHTML=`<div class="stat-label">${l}</div><div class="stat-value">${v}</div>`; sr.appendChild(c); });
+  body.appendChild(sr);
+
+  if(isCompany && s){
+    if(s.impressionTrend?.length>1) body.appendChild(makeLineChart('Daily Impressions (Organic)', s.impressionTrend, 'date', 'impressions', S.brand.primary));
+    if(s.followerTrend?.length>1) body.appendChild(makeBarChart('Daily Follower Gains', s.followerTrend, 'date', 'organic', S.brand.primary));
+    if(s.followers){
+      const dg=document.createElement('div'); dg.className='grid-2';
+      if(s.followers.byLocation?.length) dg.appendChild(makeDemCard('Top Locations',s.followers.byLocation.slice(0,8),'total',S.brand.primary));
+      if(s.followers.bySeniority?.length) dg.appendChild(makeDemCard('By Seniority',s.followers.bySeniority,'total',S.brand.accent));
+      if(s.followers.byJobFunction?.length) dg.appendChild(makeDemCard('Job Functions',s.followers.byJobFunction,'total',S.brand.primary));
+      if(s.followers.byIndustry?.length) dg.appendChild(makeDemCard('Top Industries',s.followers.byIndustry.slice(0,8),'total',S.brand.accent));
+      if(dg.children.length) body.appendChild(dg);
+    }
+    if(s.top5?.length) body.appendChild(makePostsTableWithPreviews(s.top5, previewMap));
+
+  } else if(!isCompany && s){
+    if(s.engagement?.length>1) body.appendChild(makeDualLineChart('Daily Impressions & Engagements',s.engagement,'date','impressions','engagements',S.brand.primary,S.brand.accent));
+    if(s.follByDate?.length>1) body.appendChild(makeBarChart('New Followers by Date',s.follByDate,'date','newFollowers',S.brand.primary));
+    const dg=document.createElement('div'); dg.className='grid-2'; dg.style.marginBottom='24px';
+    if(s.demographics?.['Job titles']?.length) dg.appendChild(makeDemCard('Top Job Titles',s.demographics['Job titles'],'pct',S.brand.primary));
+    if(s.demographics?.['Locations']?.length) dg.appendChild(makeDemCard('Top Locations',s.demographics['Locations'],'pct',S.brand.accent));
+    if(s.demographics?.['Industries']?.length) dg.appendChild(makeDemCard('Top Industries',s.demographics['Industries'],'pct',S.brand.primary));
+    if(s.demographics?.['Seniority']?.length) dg.appendChild(makeDemCard('Seniority',s.demographics['Seniority'],'pct',S.brand.accent));
+    if(dg.children.length) body.appendChild(dg);
+    if(s.topByEng?.length) body.appendChild(makePostsCardsWithPreviews('Top Posts by Engagements',s.topByEng.slice(0,6),'engagements',previewMap,'personal'));
+    if(s.topByImp?.length) body.appendChild(makePostsCardsWithPreviews('Top Posts by Impressions',s.topByImp.slice(0,6),'impressions',previewMap,'personal'));
+  }
+
+  // Footer
+  const ft=document.createElement('div'); ft.style.cssText='margin-top:40px;text-align:center;font-size:11px;color:#aaa';
+  ft.textContent='Generated on '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});
+  body.appendChild(ft);
+
+  document.getElementById('report-view').classList.add('open');
+}
+
+// Synchronous card builders for the print report (previews already loaded into previewMap)
+function makePostsTableWithPreviews(posts, previewMap){
+  const card=document.createElement('div'); card.className='card';
+  const grid=document.createElement('div'); grid.className='posts-preview-grid';
+  posts.forEach((p,i)=>{
+    const pc=document.createElement('div'); pc.className='post-preview-card';
+    pc.innerHTML=buildPostCardHTML(p,i,previewMap[p.link]||null,'company');
+    grid.appendChild(pc);
+  });
+  card.innerHTML=`<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:12px">Top Posts (Organic)</div>`;
+  card.appendChild(grid);
+  return card;
+}
+
+function makePostsCardsWithPreviews(title, posts, valKey, previewMap, type){
+  const card=document.createElement('div'); card.className='card';
+  const grid=document.createElement('div'); grid.className='posts-preview-grid';
+  posts.forEach((p,i)=>{
+    const url = type==='company' ? p.link : p.url;
+    const pc=document.createElement('div'); pc.className='post-preview-card';
+    pc.innerHTML=buildPostCardHTML(p,i,previewMap[url]||null,type,valKey);
+    grid.appendChild(pc);
+  });
+  card.innerHTML=`<div style="font-size:14px;font-weight:700;margin-bottom:12px">${title}</div>`;
+  card.appendChild(grid);
+  return card;
+}
+
+function closeReport(){ document.getElementById('report-view').classList.remove('open'); }
+</script>
+</body>
+</html>
