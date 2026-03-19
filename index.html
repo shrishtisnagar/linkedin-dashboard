@@ -26,6 +26,11 @@
   .nav-btn{background:transparent;color:#aaa;border:none;padding:10px 20px;text-align:left;font-size:13px;width:100%;border-left:3px solid transparent}
   .nav-btn.active{background:rgba(255,255,255,0.08);color:#fff;border-left-color:var(--primary)}
 
+  /* Developer credit */
+  .dev-credit{padding:10px 16px;font-size:11px;color:#555;border-top:1px solid rgba(255,255,255,0.05);margin-top:4px;line-height:1.6}
+  .dev-credit a{color:#aaa;text-decoration:none;font-weight:600;transition:color 0.2s}
+  .dev-credit a:hover{color:var(--primary)}
+
   /* Main */
   #main{margin-left:220px;padding:32px;min-height:100vh}
 
@@ -79,6 +84,10 @@
   .post-preview-link{font-size:11px;font-weight:600;padding:5px 10px;border-radius:6px;text-decoration:none;color:#fff}
   .lp-key-notice{background:#f8faff;border:1px dashed #b0c8e0;border-radius:10px;padding:14px 18px;font-size:13px;color:#555;display:flex;align-items:center;gap:10px}
 
+  /* See more button */
+  .see-more-btn{display:block;margin:16px auto 0;background:transparent;border:2px solid var(--primary);color:var(--primary);border-radius:8px;padding:9px 28px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s}
+  .see-more-btn:hover{background:var(--primary);color:#fff}
+
   /* API Key Modal */
   .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;display:flex;align-items:center;justify-content:center}
   .modal{background:#fff;border-radius:20px;padding:40px;width:520px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
@@ -95,6 +104,16 @@
   .welcome{text-align:center;padding-top:80px}
   .welcome .icon{font-size:52px;margin-bottom:16px}
 
+  /* Total followers badge on follower chart */
+  .follower-total-badge{display:inline-flex;align-items:center;gap:6px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:6px 14px;font-size:13px;color:#166534;font-weight:600;margin-bottom:12px}
+
+  /* How to Use styling */
+  .howto-step{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start}
+  .howto-step-num{background:var(--primary);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+  .howto-step-text{flex:1;padding-top:4px}
+  .howto-step-text strong{color:#1a1a2e;font-weight:600}
+  .howto-step-text em{font-style:italic;color:#666}
+
   /* FIX: ensure SVG inside cards never clips */
   .card svg, .card .chart-wrap svg {
     display:block;
@@ -109,7 +128,6 @@
     #main{display:none!important}
     #report-view{position:static!important;overflow:visible!important}
     .report-body{padding:20px!important}
-    /* FIX: prevent cards from clipping on print */
     .card{
       break-inside:avoid;
       page-break-inside:avoid;
@@ -119,7 +137,6 @@
       break-inside:avoid;
       page-break-inside:avoid;
     }
-    /* FIX: ensure SVG is never clipped when printing */
     svg{
       overflow:visible!important;
       max-width:100%!important;
@@ -128,6 +145,7 @@
       break-inside:avoid;
       page-break-inside:avoid;
     }
+    .dev-credit{display:none!important}
   }
 </style>
 </head>
@@ -154,7 +172,7 @@
       <div style="font-size:13px;font-weight:700;color:#166534;margin-bottom:8px">💾 Where is your data stored?</div>
       <div style="font-size:13px;color:#166534;line-height:1.8">
         Everything stays <strong>on your own computer</strong>, inside your browser. Nothing is uploaded to any server — we never see your data.<br/><br/>
-        Your uploads <strong>persist between sessions</strong> — close the tab, come back next week, your data is still here. This is what makes the <strong>365-Day View</strong> useful: upload a new month each month and watch your trends build up over time.
+        Your uploads <strong>persist between sessions</strong> — close the tab, come back next week, your data is still here.
       </div>
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid #bbf7d0">
         <div style="font-size:12px;font-weight:600;color:#166534;margin-bottom:6px">⚠️ Two things to be aware of:</div>
@@ -180,9 +198,13 @@
   <button class="upload-btn" onclick="setView('upload')">+ Upload Report</button>
   <div class="spacer"></div>
   <button class="nav-btn active" id="nav-dashboard" onclick="setView('dashboard')">📈 Dashboard</button>
-  <button class="nav-btn" id="nav-cumulative" onclick="setView('cumulative')">🗓 365-Day View</button>
+  <button class="nav-btn" id="nav-howto" onclick="setView('howto')">📖 How to Use</button>
   <button class="nav-btn" id="nav-settings" onclick="setView('settings')">🎨 Branding</button>
-  <div style="padding:12px 20px;font-size:11px;color:#555;border-top:1px solid rgba(255,255,255,0.05);margin-top:4px">🤖 AI features coming in beta</div>
+
+  <div class="dev-credit">
+    Have feedback?<br/>
+    <a href="https://www.linkedin.com/in/shrishtisnagar/">Tell me here →</a>
+  </div>
 </div>
 
 <!-- MAIN -->
@@ -201,14 +223,170 @@
         </div>
       </div>
       <div id="company-files">
+        <div style="font-size:11px;color:#666;margin-bottom:14px;padding:8px 12px;background:#f8faff;border-radius:6px;border:1px solid #e0eaf5">
+          Not sure where to get these files? <a href="#" onclick="setView('howto')" style="color:var(--primary);font-weight:600">See export instructions →</a>
+        </div>
         <div class="form-group"><label class="form-label">Content XLS <span style="color:#e53e3e">*</span></label><div class="form-hint" style="margin-bottom:6px">Contains "Metrics" + "All posts" sheets</div><input class="form-input" type="file" accept=".xlsx,.xls" id="file-content" onchange="fileChosen('file-content','ok-content')"/><div class="file-ok" id="ok-content"></div></div>
         <div class="form-group"><label class="form-label">Followers XLS <span style="color:#aaa;font-weight:400">(optional)</span></label><div class="form-hint" style="margin-bottom:6px">Contains "New followers", "Location", "Seniority" etc.</div><input class="form-input" type="file" accept=".xlsx,.xls" id="file-followers" onchange="fileChosen('file-followers','ok-followers')"/><div class="file-ok" id="ok-followers"></div></div>
       </div>
       <div id="personal-files" style="display:none">
+        <div style="font-size:11px;color:#666;margin-bottom:14px;padding:8px 12px;background:#f8faff;border-radius:6px;border:1px solid #e0eaf5">
+          Not sure where to get this file? <a href="#" onclick="setView('howto')" style="color:var(--primary);font-weight:600">See export instructions →</a>
+        </div>
         <div class="form-group"><label class="form-label">Personal Analytics XLS <span style="color:#e53e3e">*</span></label><div class="form-hint" style="margin-bottom:6px">Single file with Discovery, Engagement, Top Posts, Followers, Demographics sheets</div><input class="form-input" type="file" accept=".xlsx,.xls" id="file-personal" onchange="fileChosen('file-personal','ok-personal')"/><div class="file-ok" id="ok-personal"></div></div>
       </div>
       <div id="upload-error" style="background:#fff5f5;border:1px solid #fed7d7;border-radius:8px;padding:12px;color:#c53030;font-size:13px;margin-bottom:14px;display:none"></div>
       <button onclick="handleUpload()" id="upload-btn" style="background:var(--primary);color:#fff;border:none;border-radius:10px;padding:13px 0;font-size:15px;font-weight:700;width:100%">Upload & Analyse →</button>
+    </div>
+  </div>
+
+  <!-- HOW TO USE VIEW -->
+  <div id="view-howto" style="display:none;max-width:780px">
+    <h2 style="color:#1a1a2e;margin-bottom:8px">📖 How to Export Your Analytics</h2>
+    <p style="color:#666;font-size:14px;line-height:1.7;margin-bottom:32px">Follow these steps to export your LinkedIn analytics data and upload it to this dashboard.</p>
+    
+    <!-- Company Page Instructions -->
+    <div class="card" style="border-left:4px solid var(--primary)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+        <div style="font-size:24px">🏢</div>
+        <div>
+          <h3 style="font-size:18px;font-weight:700;color:#1a1a2e">Company Page Analytics</h3>
+          <p style="font-size:13px;color:#888;margin-top:2px">For LinkedIn company pages</p>
+        </div>
+      </div>
+
+      <div style="background:#f8faff;border-radius:10px;padding:16px 20px;margin-bottom:20px">
+        <div style="font-size:12px;font-weight:600;color:#666;margin-bottom:12px">📋 YOU'LL NEED TO EXPORT:</div>
+        <div style="font-size:13px;color:#444;line-height:1.8">
+          • <strong>Content analytics</strong> (required) — contains post performance data<br/>
+          • <strong>Followers analytics</strong> (optional) — contains follower demographics
+        </div>
+      </div>
+
+      <div class="howto-step">
+        <div class="howto-step-num">1</div>
+        <div class="howto-step-text">
+          <div style="font-size:14px;color:#444;line-height:1.7">Go to your Company Page on LinkedIn</div>
+        </div>
+      </div>
+
+      <div class="howto-step">
+        <div class="howto-step-num">2</div>
+        <div class="howto-step-text">
+          <div style="font-size:14px;color:#444;line-height:1.7">Click <strong>Analytics</strong> in the left menu</div>
+        </div>
+      </div>
+
+      <div class="howto-step">
+        <div class="howto-step-num">3</div>
+        <div class="howto-step-text">
+          <div style="font-size:14px;color:#444;line-height:1.7">Select the <strong>Content</strong> tab</div>
+          <div style="font-size:12px;color:#888;margin-top:4px">You should see a graph with your content performance</div>
+        </div>
+      </div>
+
+      <div class="howto-step">
+        <div class="howto-step-num">4</div>
+        <div class="howto-step-text">
+          <div style="font-size:14px;color:#444;line-height:1.7">Choose your timeframe and click <strong>Export</strong> in the upper-right corner</div>
+          <div style="font-size:12px;color:#888;margin-top:4px">We recommend "Past 28 days" or a custom past month</div>
+        </div>
+      </div>
+
+      <div class="howto-step">
+        <div class="howto-step-num">5</div>
+        <div class="howto-step-text">
+          <div style="font-size:14px;color:#444;line-height:1.7">Repeat for the <strong>Followers</strong> tab</div>
+          <div style="font-size:12px;color:#888;margin-top:4px"><strong>Important:</strong> Use the exact same timeframe as step 4</div>
+        </div>
+      </div>
+
+      <div class="howto-step">
+        <div class="howto-step-num">6</div>
+        <div class="howto-step-text">
+          <div style="font-size:14px;color:#444;line-height:1.7">Download both XLS files and upload them here</div>
+          <div style="font-size:12px;color:#888;margin-top:4px">The files will be accessible in your Downloads folder</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Personal Profile Instructions -->
+    <div class="card" style="border-left:4px solid #38a169">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+        <div style="font-size:24px">👤</div>
+        <div>
+          <h3 style="font-size:18px;font-weight:700;color:#1a1a2e">Personal Profile Analytics</h3>
+          <p style="font-size:13px;color:#888;margin-top:2px">For individual LinkedIn profiles</p>
+        </div>
+      </div>
+
+      <div style="background:#f0fdf4;border-radius:10px;padding:16px 20px;margin-bottom:20px;border:1px solid #bbf7d0">
+        <div style="font-size:12px;font-weight:600;color:#166534;margin-bottom:8px">✨ EASIER THAN COMPANY PAGES</div>
+        <div style="font-size:13px;color:#166534;line-height:1.8">
+          Personal profiles export all data in <strong>one file</strong> — no matter which tab you're on, you'll get the same comprehensive export with all your analytics data.
+        </div>
+      </div>
+
+      <div class="howto-step">
+        <div class="howto-step-num">1</div>
+        <div class="howto-step-text">
+          <div style="font-size:14px;color:#444;line-height:1.7">Go to your LinkedIn profile</div>
+        </div>
+      </div>
+
+      <div class="howto-step">
+        <div class="howto-step-num">2</div>
+        <div class="howto-step-text">
+          <div style="font-size:14px;color:#444;line-height:1.7">Scroll down to the <strong>Analytics</strong> section</div>
+        </div>
+      </div>
+
+      <div class="howto-step">
+        <div class="howto-step-num">3</div>
+        <div class="howto-step-text">
+          <div style="font-size:14px;color:#444;line-height:1.7">Click <strong>Show all analytics →</strong></div>
+        </div>
+      </div>
+
+      <div class="howto-step">
+        <div class="howto-step-num">4</div>
+        <div class="howto-step-text">
+          <div style="font-size:14px;color:#444;line-height:1.7">Click any tab (Posts, Audience, etc.)</div>
+          <div style="font-size:12px;color:#888;margin-top:4px">It doesn't matter which — they all export the same file</div>
+        </div>
+      </div>
+
+      <div class="howto-step">
+        <div class="howto-step-num">5</div>
+        <div class="howto-step-text">
+          <div style="font-size:14px;color:#444;line-height:1.7">Choose your timeframe and click <strong>Export</strong></div>
+          <div style="font-size:12px;color:#888;margin-top:4px">We recommend "Past 28 days" or a custom past month</div>
+        </div>
+      </div>
+
+      <div class="howto-step">
+        <div class="howto-step-num">6</div>
+        <div class="howto-step-text">
+          <div style="font-size:14px;color:#444;line-height:1.7">Download the XLS file and upload it here</div>
+          <div style="font-size:12px;color:#888;margin-top:4px">One file contains everything you need</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tips section -->
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:20px 24px;margin-top:24px">
+      <div style="font-size:15px;font-weight:700;color:#92400e;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        <span>💡</span> Pro Tips
+      </div>
+      <div style="font-size:13px;color:#92400e;line-height:1.8">
+        • <strong>Consistent timeframes:</strong> Use the same date range for all exports to ensure accurate comparisons<br/>
+        • <strong>Monthly cadence:</strong> Export at the same time each month to track trends over time<br/>
+        • <strong>File naming:</strong> The tool will organize everything by client name and month automatically
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:32px">
+      <button onclick="setView('upload')" style="background:var(--primary);color:#fff;border:none;border-radius:10px;padding:12px 32px;font-size:14px;font-weight:700">Ready to Upload →</button>
     </div>
   </div>
 
@@ -233,13 +411,6 @@
         <span id="lp-key-status" style="font-size:12px;color:#38a169"></span>
       </div>
     </div>
-  </div>
-
-  <!-- CUMULATIVE VIEW -->
-  <div id="view-cumulative" style="display:none">
-    <h2 style="color:#1a1a2e;margin-bottom:8px" id="cum-title">365-Day View</h2>
-    <p style="color:#888;margin-bottom:24px" id="cum-subtitle"></p>
-    <div id="cum-content"></div>
   </div>
 
   <!-- DASHBOARD VIEW -->
@@ -297,7 +468,9 @@ const S = {
   activeClient: '',
   activeMonth: '',
   pageType: 'company',
-  currentView: 'dashboard'
+  currentView: 'dashboard',
+  // Track how many posts to show per section: key = gridId
+  postLimits: {}
 };
 
 function save(){ localStorage.setItem('li_clients_v6', JSON.stringify(S.clients)); }
@@ -363,12 +536,11 @@ function skipApiKey(){ document.getElementById('api-modal').style.display='none'
 
 // ── VIEWS ──────────────────────────────────────────────────────
 function setView(v){
-  ['dashboard','upload','settings','cumulative'].forEach(id => document.getElementById('view-'+id).style.display='none');
+  ['dashboard','upload','settings','howto'].forEach(id => document.getElementById('view-'+id).style.display='none');
   document.getElementById('view-'+v).style.display = 'block';
-  ['dashboard','cumulative','settings'].forEach(id => document.getElementById('nav-'+id)?.classList.remove('active'));
+  ['dashboard','settings','howto'].forEach(id => document.getElementById('nav-'+id)?.classList.remove('active'));
   if(document.getElementById('nav-'+v)) document.getElementById('nav-'+v).classList.add('active');
   S.currentView = v;
-  if(v==='cumulative') renderCumulative();
   if(v==='settings') applyBrand();
 }
 
@@ -463,15 +635,30 @@ function parsePersonal(wb){
   let totalFollowers=0;
   if(follRaw[0]) totalFollowers=n(follRaw[0][1])||n(String(follRaw[0][0]).replace(/[^0-9]/g,''));
   const follByDate=rawToObjects(follRaw,2).map(r=>({date:fmtD(r['Date']),newFollowers:n(r['New followers'])})).filter(r=>r.date);
-  const demObjects=rawToObjects(getRaw(wb,'DEMOGRAPHICS'),0);
+  // Total new followers in the period
+  const totalNewFollowers = follByDate.reduce((s,r)=>s+r.newFollowers,0);
+
+  // Parse DEMOGRAPHICS: Col A = category grouper (repeats), Col B = value name, Col C = percentage
+  // Row 0 is a header row ("Value", "Percentage"), data starts at row 1
+  const demRaw=getRaw(wb,'DEMOGRAPHICS');
   const demGroups={};
   const cats=['Job titles','Locations','Industries','Seniority','Company size','Companies'];
-  let cur='';
-  demObjects.forEach(r=>{ const k=String(r['Top Demographics']||'').trim(); if(cats.includes(k)){cur=k;if(!demGroups[cur])demGroups[cur]=[];} else if(cur&&k) demGroups[cur].push({name:k,value:r['Value']||'',pct:r['Percentage']||''}); });
+  // demRaw[0] = header row; rows 1+ have: [0]=category, [1]=item name, [2]=percentage
+  demRaw.slice(1).forEach(r=>{
+    const cat=String(r[0]||'').trim();
+    const val=String(r[1]||'').trim();
+    const pct=r[2]!==undefined&&r[2]!==''?r[2]:'';
+    if(!cat&&!val) return; // skip empty rows
+    const grp=cats.includes(cat)?cat:null;
+    if(grp){
+      if(!demGroups[grp]) demGroups[grp]=[];
+      if(val) demGroups[grp].push({name:val,value:val,pct:typeof pct==='number'?(pct*100).toFixed(1)+'%':String(pct)});
+    }
+  });
   const totalImp=impressions||engagement.reduce((s,r)=>s+r.impressions,0);
   const totalEng=engagement.reduce((s,r)=>s+r.engagements,0);
   const engRate=totalImp>0?((totalEng/totalImp)*100).toFixed(2):'0.00';
-  return {impressions:totalImp,membersReached,engagement,topByEng,topByImp,totalFollowers,follByDate,demographics:demGroups,totalEngagements:totalEng,engRate};
+  return {impressions:totalImp,membersReached,engagement,topByEng,topByImp,totalFollowers,totalNewFollowers,follByDate,demographics:demGroups,totalEngagements:totalEng,engRate};
 }
 
 function parseCompanyContent(wb){
@@ -552,7 +739,7 @@ function renderCharts(entry, isCompany){
   if(isCompany && entry.summary){
     const s = entry.summary;
     if(s.impressionTrend?.length>1) el.appendChild(makeLineChart('Daily Impressions (Organic)', s.impressionTrend, 'date', 'impressions', S.brand.primary));
-    if(s.followerTrend?.length>1) el.appendChild(makeBarChart('Daily Follower Gains', s.followerTrend, 'date', 'organic', S.brand.primary));
+    if(s.followerTrend?.length>1) el.appendChild(makeBarChartWithTotal('Daily Follower Gains', s.followerTrend, 'date', 'organic', S.brand.primary));
     if(s.followers){
       const demGrid = document.createElement('div'); demGrid.className='grid-2';
       if(s.followers.byLocation?.length) demGrid.appendChild(makeDemCard('Top Locations', s.followers.byLocation.slice(0,8), 'total', S.brand.primary));
@@ -564,28 +751,44 @@ function renderCharts(entry, isCompany){
     if(s.top5?.length) el.appendChild(makePostsTable(s.top5, isCompany));
   } else if(!isCompany && entry.personal){
     const pd = entry.personal;
-    if(pd.engagement?.length>1) el.appendChild(makeDualLineChart('Daily Impressions & Engagements', pd.engagement, 'date', 'impressions', 'engagements', S.brand.primary, S.brand.accent));
-    if(pd.follByDate?.length>1) el.appendChild(makeBarChart('New Followers by Date', pd.follByDate, 'date', 'newFollowers', S.brand.primary));
-    const demGrid = document.createElement('div'); demGrid.className='grid-2';
-    if(pd.demographics?.['Job titles']?.length) demGrid.appendChild(makeDemCard('Top Job Titles', pd.demographics['Job titles'], 'pct', S.brand.primary));
-    if(pd.demographics?.['Locations']?.length) demGrid.appendChild(makeDemCard('Top Locations', pd.demographics['Locations'], 'pct', S.brand.accent));
-    if(pd.demographics?.['Industries']?.length) demGrid.appendChild(makeDemCard('Top Industries', pd.demographics['Industries'], 'pct', S.brand.primary));
-    if(pd.demographics?.['Seniority']?.length) demGrid.appendChild(makeDemCard('Seniority', pd.demographics['Seniority'], 'pct', S.brand.accent));
-    if(demGrid.children.length) el.appendChild(demGrid);
-    if(pd.topByEng?.length || pd.topByImp?.length){
-      if(pd.topByEng?.length) el.appendChild(makeTopPostsPersonalCards('Top Posts by Engagements', pd.topByEng.slice(0,6), 'engagements'));
-      if(pd.topByImp?.length) el.appendChild(makeTopPostsPersonalCards('Top Posts by Impressions', pd.topByImp.slice(0,6), 'impressions'));
+    // Separate impressions and engagements into two distinct charts
+    if(pd.engagement?.length>1){
+      el.appendChild(makeLineChart('Daily Impressions', pd.engagement, 'date', 'impressions', S.brand.primary));
+      el.appendChild(makeLineChart('Daily Engagements', pd.engagement, 'date', 'engagements', S.brand.accent));
     }
+    // Followers chart with total badge
+    if(pd.follByDate?.length>1) el.appendChild(makeBarChartWithTotal('New Followers by Date', pd.follByDate, 'date', 'newFollowers', S.brand.primary, pd.totalNewFollowers));
+
+    // Demographics section (same layout as company page)
+    if(pd.demographics && Object.keys(pd.demographics).length){
+      const demGrid = document.createElement('div'); demGrid.className='grid-2';
+      if(pd.demographics['Job titles']?.length) demGrid.appendChild(makeDemCard('Top Job Titles', pd.demographics['Job titles'], 'pct', S.brand.primary));
+      if(pd.demographics['Locations']?.length) demGrid.appendChild(makeDemCard('Top Locations', pd.demographics['Locations'], 'pct', S.brand.accent));
+      if(pd.demographics['Industries']?.length) demGrid.appendChild(makeDemCard('Top Industries', pd.demographics['Industries'], 'pct', S.brand.primary));
+      if(pd.demographics['Seniority']?.length) demGrid.appendChild(makeDemCard('Seniority', pd.demographics['Seniority'], 'pct', S.brand.accent));
+      if(pd.demographics['Company size']?.length) demGrid.appendChild(makeDemCard('Company Size', pd.demographics['Company size'], 'pct', S.brand.primary));
+      if(pd.demographics['Companies']?.length) demGrid.appendChild(makeDemCard('Top Companies', pd.demographics['Companies'], 'pct', S.brand.accent));
+      if(demGrid.children.length){
+        const demWrap = document.createElement('div');
+        demWrap.innerHTML='<div style="font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px">👥 Audience Demographics</div>';
+        demWrap.appendChild(demGrid);
+        el.appendChild(demWrap);
+      }
+    }
+
+    // Top posts — with see more
+    if(pd.topByEng?.length) el.appendChild(makeTopPostsPersonalCards('Top Posts by Engagements', pd.topByEng, 'engagements', 'eng'));
+    if(pd.topByImp?.length) el.appendChild(makeTopPostsPersonalCards('Top Posts by Impressions', pd.topByImp, 'impressions', 'imp'));
   }
 }
 
 // ── SVG CHART HELPERS ─────────────────────────────────────────
-// FIX: svgChart now uses overflow:visible on wrapper and no fixed height clipping
-function svgChart(title, svgContent){
+function svgChart(title, svgContent, badgeHtml){
   const card = document.createElement('div');
   card.className='card';
   card.style.overflow='visible';
-  card.innerHTML=`<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:16px">${title}</div><div style="width:100%;overflow:visible">${svgContent}</div>`;
+  const badge = badgeHtml ? `<div style="margin-bottom:10px">${badgeHtml}</div>` : '';
+  card.innerHTML=`<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:12px">${title}</div>${badge}<div style="width:100%;overflow:visible">${svgContent}</div>`;
   return card;
 }
 
@@ -599,25 +802,7 @@ function makeLineChart(title, data, xKey, yKey, color){
   const ticks=data.filter((_,i)=>i%(Math.ceil(data.length/8))===0);
   const ticksXml=ticks.map(d=>{const i=data.indexOf(d);return`<text x="${xs[i]}" y="${H-pad.b+14}" text-anchor="middle" font-size="9" fill="#999">${d[xKey]}</text>`;}).join('');
   const yTicks=[0,0.25,0.5,0.75,1].map(p=>{const v=Math.round(maxV*p);const y=H-pad.b-p*(H-pad.t-pad.b);return`<text x="${pad.l-6}" y="${y+4}" text-anchor="end" font-size="9" fill="#999">${v>=1000?(v/1000).toFixed(0)+'k':v}</text><line x1="${pad.l}" y1="${y}" x2="${W-pad.r}" y2="${y}" stroke="#f0f0f0" stroke-width="1"/>`;}).join('');
-  // FIX: viewBox height includes bottom label space; overflow visible
   const svg=`<svg viewBox="0 0 ${W} ${H+10}" width="100%" style="overflow:visible;display:block">${yTicks}${ticksXml}<path d="${path}" fill="none" stroke="${color}" stroke-width="2.5"/></svg>`;
-  return svgChart(title, svg);
-}
-
-function makeDualLineChart(title, data, xKey, y1Key, y2Key, c1, c2){
-  const W=700,H=180,pad={t:10,r:20,b:50,l:60};
-  const v1=data.map(d=>d[y1Key]),v2=data.map(d=>d[y2Key]);
-  const maxV=Math.max(...v1,...v2,1);
-  const xs=data.map((_,i)=>pad.l+(i/(data.length-1||1))*(W-pad.l-pad.r));
-  const p1='M'+xs.map((x,i)=>`${x},${H-pad.b-(v1[i]/maxV)*(H-pad.t-pad.b)}`).join('L');
-  const p2='M'+xs.map((x,i)=>`${x},${H-pad.b-(v2[i]/maxV)*(H-pad.t-pad.b)}`).join('L');
-  const ticks=data.filter((_,i)=>i%(Math.ceil(data.length/8))===0);
-  const ticksXml=ticks.map(d=>{const i=data.indexOf(d);return`<text x="${xs[i]}" y="${H-pad.b+14}" text-anchor="middle" font-size="9" fill="#999">${d[xKey]}</text>`;}).join('');
-  // FIX: legend moved inside viewBox height; increased H+20 to fit
-  const legend=`<text x="${pad.l}" y="${H-pad.b+30}" font-size="10" fill="${c1}">● ${y1Key}</text><text x="${pad.l+120}" y="${H-pad.b+30}" font-size="10" fill="${c2}">● ${y2Key}</text>`;
-  const yTicks=[0,0.25,0.5,0.75,1].map(p=>{const v=Math.round(maxV*p);const y=H-pad.b-p*(H-pad.t-pad.b);return`<text x="${pad.l-6}" y="${y+4}" text-anchor="end" font-size="9" fill="#999">${v>=1000?(v/1000).toFixed(0)+'k':v}</text><line x1="${pad.l}" y1="${y}" x2="${W-pad.r}" y2="${y}" stroke="#f0f0f0" stroke-width="1"/>`;}).join('');
-  // FIX: viewBox now tall enough to include legend row
-  const svg=`<svg viewBox="0 0 ${W} ${H+20}" width="100%" style="overflow:visible;display:block">${yTicks}<line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H-pad.b}" stroke="#f0f0f0"/>${ticksXml}<path d="${p1}" fill="none" stroke="${c1}" stroke-width="2.5"/><path d="${p2}" fill="none" stroke="${c2}" stroke-width="2.5"/>${legend}</svg>`;
   return svgChart(title, svg);
 }
 
@@ -634,6 +819,22 @@ function makeBarChart(title, data, xKey, yKey, color){
   return svgChart(title, svg);
 }
 
+// Bar chart variant with total followers badge
+function makeBarChartWithTotal(title, data, xKey, yKey, color, explicitTotal){
+  const W=700,H=160,pad={t:10,r:20,b:40,l:60};
+  const vals=data.map(d=>d[yKey]);
+  const maxV=Math.max(...vals,1);
+  const total = explicitTotal !== undefined ? explicitTotal : vals.reduce((s,v)=>s+v,0);
+  const bw=Math.max(2,(W-pad.l-pad.r)/data.length-2);
+  const bars=data.map((d,i)=>{const x=pad.l+i*((W-pad.l-pad.r)/data.length);const h=(d[yKey]/maxV)*(H-pad.t-pad.b);const y=H-pad.b-h;return`<rect x="${x}" y="${y}" width="${bw}" height="${h}" fill="${color}" rx="2"/>`;}).join('');
+  const ticks=data.filter((_,i)=>i%(Math.ceil(data.length/8))===0);
+  const ticksXml=ticks.map(d=>{const i=data.indexOf(d);const x=pad.l+i*((W-pad.l-pad.r)/data.length);return`<text x="${x+bw/2}" y="${H-pad.b+14}" text-anchor="middle" font-size="9" fill="#999">${d[xKey]}</text>`;}).join('');
+  const yTicks=[0,0.25,0.5,0.75,1].map(p=>{const v=Math.round(maxV*p);const y=H-pad.b-p*(H-pad.t-pad.b);return`<text x="${pad.l-6}" y="${y+4}" text-anchor="end" font-size="9" fill="#999">${v>=1000?(v/1000).toFixed(1)+'k':v}</text><line x1="${pad.l}" y1="${y}" x2="${W-pad.r}" y2="${y}" stroke="#f0f0f0" stroke-width="1"/>`;}).join('');
+  const svg=`<svg viewBox="0 0 ${W} ${H+10}" width="100%" style="overflow:visible;display:block"><line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H-pad.b}" stroke="#e0e0e0" stroke-width="1"/>${yTicks}${bars}${ticksXml}</svg>`;
+  const badge = `<div class="follower-total-badge">📈 Total new followers this period: <strong>${total.toLocaleString()}</strong></div>`;
+  return svgChart(title, svg, badge);
+}
+
 function makeDemCard(title, items, valKey, color){
   const card=document.createElement('div'); card.className='card';
   const rows=items.map(d=>`<div class="dem-row"><span style="color:#444">${d.name}</span><span style="font-weight:600;color:${color}">${d[valKey]}</span></div>`).join('');
@@ -641,12 +842,13 @@ function makeDemCard(title, items, valKey, color){
   return card;
 }
 
+// ── POSTS WITH SEE MORE ────────────────────────────────────────
+// For company posts table
 function makePostsTable(posts, isCompany){
   const card=document.createElement('div'); card.className='card';
   const noKey = !S.lpKey;
   const notice = noKey ? `<div class="lp-key-notice" style="margin-bottom:16px">🔗 <span>Add a <strong>LinkPreview API key</strong> in <a href="#" onclick="setView('settings')" style="color:var(--primary)">Settings</a> to see post thumbnails & titles.</span></div>` : '';
   card.innerHTML=`<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:12px">Top Posts (Organic)</div>${notice}<div class="posts-preview-grid" id="posts-grid-company"></div>`;
-  // Render skeleton cards immediately
   const grid = card.querySelector('#posts-grid-company');
   posts.forEach((p,i) => {
     const pc = document.createElement('div'); pc.className='post-preview-card';
@@ -654,7 +856,6 @@ function makePostsTable(posts, isCompany){
     pc.innerHTML = buildPostCardHTML(p, i, null, 'company');
     grid.appendChild(pc);
   });
-  // Async load previews if key set
   if(S.lpKey){
     posts.forEach((p,i) => {
       if(!p.link) return;
@@ -667,29 +868,66 @@ function makePostsTable(posts, isCompany){
   return card;
 }
 
-function makeTopPostsPersonalCards(title, posts, valKey){
+// For personal posts — with see more
+function makeTopPostsPersonalCards(title, allPosts, valKey, sectionKey){
+  const INITIAL = 6;
+  const INCREMENTS = [10, 12];
   const card=document.createElement('div'); card.className='card';
   const noKey = !S.lpKey;
   const notice = noKey ? `<div class="lp-key-notice" style="margin-bottom:12px">🔗 <span>Add a <strong>LinkPreview API key</strong> in <a href="#" onclick="setView('settings')" style="color:var(--primary)">Settings</a> to load post previews.</span></div>` : '';
-  const gridId = 'posts-grid-p-'+valKey;
-  card.innerHTML=`<div style="font-size:14px;font-weight:700;margin-bottom:12px">${title}</div>${notice}<div class="posts-preview-grid" id="${gridId}"></div>`;
+  const gridId = 'posts-grid-p-'+sectionKey;
+  const seeMoreId = 'see-more-'+sectionKey;
+  card.innerHTML=`<div style="font-size:14px;font-weight:700;margin-bottom:12px">${title}</div>${notice}<div class="posts-preview-grid" id="${gridId}"></div><div id="${seeMoreId}" style="text-align:center;margin-top:12px"></div>`;
+
+  const currentLimit = S.postLimits[sectionKey] || INITIAL;
+  const postsToShow = allPosts.slice(0, currentLimit);
+
   const grid = card.querySelector('#'+gridId);
-  posts.forEach((p,i) => {
+  postsToShow.forEach((p,i) => {
     const pc = document.createElement('div'); pc.className='post-preview-card';
-    pc.id = 'pcard-p-'+valKey+'-'+i;
+    pc.id = 'pcard-p-'+sectionKey+'-'+i;
     pc.innerHTML = buildPostCardHTML(p, i, null, 'personal', valKey);
     grid.appendChild(pc);
   });
+
   if(S.lpKey){
-    posts.forEach((p,i) => {
+    postsToShow.forEach((p,i) => {
       const url = p.url;
       if(!url) return;
       fetchLinkPreview(url).then(preview => {
-        const el = document.getElementById('pcard-p-'+valKey+'-'+i);
+        const el = document.getElementById('pcard-p-'+sectionKey+'-'+i);
         if(el && preview) el.innerHTML = buildPostCardHTML(p, i, preview, 'personal', valKey);
       });
     });
   }
+
+  // See more button
+  const seeMoreEl = card.querySelector('#'+seeMoreId);
+  const remaining = allPosts.length - currentLimit;
+  if(remaining > 0){
+    // Figure out next step
+    const nextCount = INCREMENTS.find(x => x > currentLimit) || (currentLimit + 6);
+    const showCount = Math.min(nextCount, allPosts.length);
+    const btn = document.createElement('button');
+    btn.className = 'see-more-btn';
+    btn.textContent = `See more posts (showing ${currentLimit} of ${allPosts.length})`;
+    btn.onclick = () => {
+      S.postLimits[sectionKey] = showCount;
+      renderDashboard();
+    };
+    seeMoreEl.appendChild(btn);
+  } else if(allPosts.length > INITIAL){
+    // Show collapse option
+    const btn = document.createElement('button');
+    btn.className = 'see-more-btn';
+    btn.textContent = `Show fewer posts`;
+    btn.onclick = () => {
+      S.postLimits[sectionKey] = INITIAL;
+      renderDashboard();
+    };
+    seeMoreEl.appendChild(btn);
+  }
+
   return card;
 }
 
@@ -729,13 +967,6 @@ function buildPostCardHTML(p, i, preview, type, valKey){
     </div>`;
 }
 
-function makeTopPostsPersonal(title, posts, valKey){
-  const card=document.createElement('div'); card.className='card';
-  const rows=posts.map((p,i)=>`<tr><td><a href="${p.url}" target="_blank" style="color:${S.brand.primary}">Post ${i+1}</a></td><td>${p.publishDate}</td><td style="font-weight:700">${p[valKey]}</td></tr>`).join('');
-  card.innerHTML=`<div style="font-size:14px;font-weight:700;margin-bottom:12px">${title}</div><table><thead><tr><th>Post</th><th>Date</th><th>${valKey==='engagements'?'Eng.':'Imp.'}</th></tr></thead><tbody>${rows}</tbody></table>`;
-  return card;
-}
-
 // ── AI ─────────────────────────────────────────────────────────
 function renderAI(entry){
   const el=document.getElementById('dash-ai');
@@ -760,27 +991,11 @@ function renderMD(elId, text){
   el.innerHTML=html;
 }
 
-// ── CUMULATIVE ─────────────────────────────────────────────────
-function renderCumulative(){
-  if(!S.activeClient){ document.getElementById('cum-content').innerHTML='<div class="card" style="color:#888">No client selected.</div>'; return; }
-  const data=S.clients[S.activeClient];
-  const months=Object.keys(data).sort();
-  document.getElementById('cum-title').textContent='365-Day View — '+S.activeClient;
-  document.getElementById('cum-subtitle').textContent=months.length+' month(s) of data';
-  if(months.length<2){ document.getElementById('cum-content').innerHTML='<div class="card" style="color:#888">Upload at least 2 months to see trends.</div>'; return; }
-  const cumData=months.map(m=>{const d=data[m];return{month:fmtMonth(m).split(' ')[0].slice(0,3)+' '+fmtMonth(m).split(' ')[1],impressions:d.type==='company'?(d.summary?.totalImpressions||0):(d.personal?.impressions||0),engRate:parseFloat(d.type==='company'?(d.summary?.engRate||0):(d.personal?.engRate||0))};});
-  const el=document.getElementById('cum-content');
-  el.innerHTML='';
-  el.appendChild(makeLineChart('Impressions Over Time', cumData, 'month', 'impressions', S.brand.primary));
-  el.appendChild(makeLineChart('Engagement Rate % Over Time', cumData, 'month', 'engRate', S.brand.accent));
-}
-
 // ── PRINT REPORT ───────────────────────────────────────────────
 async function openReport(){
   const entry=S.clients[S.activeClient]?.[S.activeMonth];
   if(!entry) return;
 
-  // Show loading state on button
   const printBtn = document.querySelector('button[onclick="openReport()"]');
   const origText = printBtn?.textContent;
   if(printBtn){ printBtn.textContent = '⏳ Loading previews…'; printBtn.disabled = true; }
@@ -789,16 +1004,14 @@ async function openReport(){
   const s=isCompany?entry.summary:entry.personal;
   const monthLabel=fmtMonth(S.activeMonth);
 
-  // ── Pre-fetch ALL preview data before building the report ──
-  const previewMap = {}; // url -> preview object
+  const previewMap = {};
   if(S.lpKey){
     const urlsToFetch = [];
     if(isCompany && s?.top5?.length) s.top5.forEach(p=>{ if(p.link) urlsToFetch.push(p.link); });
     if(!isCompany){
-      (s?.topByEng||[]).slice(0,6).forEach(p=>{ if(p.url) urlsToFetch.push(p.url); });
-      (s?.topByImp||[]).slice(0,6).forEach(p=>{ if(p.url) urlsToFetch.push(p.url); });
+      (s?.topByEng||[]).slice(0,12).forEach(p=>{ if(p.url) urlsToFetch.push(p.url); });
+      (s?.topByImp||[]).slice(0,12).forEach(p=>{ if(p.url) urlsToFetch.push(p.url); });
     }
-    // Fetch all in parallel, wait for every one to resolve
     const unique = [...new Set(urlsToFetch)];
     await Promise.all(unique.map(async url => {
       const preview = await fetchLinkPreview(url);
@@ -806,7 +1019,6 @@ async function openReport(){
     }));
   }
 
-  // Restore button
   if(printBtn){ printBtn.textContent = origText; printBtn.disabled = false; }
 
   const totalFollowers=isCompany?(entry.manualFollowers||s.totalFollowers||0):s.totalFollowers;
@@ -828,20 +1040,18 @@ async function openReport(){
   const body=document.getElementById('report-body');
   body.innerHTML='';
 
-  // Header
   const hdr=document.createElement('div');
   hdr.style.cssText=`background:linear-gradient(135deg,${S.brand.primary},${S.brand.accent});border-radius:16px;padding:32px 36px;color:#fff;margin-bottom:32px;-webkit-print-color-adjust:exact;print-color-adjust:exact`;
   hdr.innerHTML=`<div style="font-size:28px;font-weight:800;margin-bottom:6px;color:#fff">${S.activeClient}</div><div style="font-size:15px;color:#fff;opacity:0.9">${isCompany?'Company Page':'Personal Profile'} — ${monthLabel} LinkedIn Report</div>`;
   body.appendChild(hdr);
 
-  // Stats
   const sr=document.createElement('div'); sr.className='stats-row'; sr.style.marginBottom='32px';
   stats.forEach(([l,v])=>{ const c=document.createElement('div'); c.className='stat-card'; c.innerHTML=`<div class="stat-label">${l}</div><div class="stat-value">${v}</div>`; sr.appendChild(c); });
   body.appendChild(sr);
 
   if(isCompany && s){
     if(s.impressionTrend?.length>1) body.appendChild(makeLineChart('Daily Impressions (Organic)', s.impressionTrend, 'date', 'impressions', S.brand.primary));
-    if(s.followerTrend?.length>1) body.appendChild(makeBarChart('Daily Follower Gains', s.followerTrend, 'date', 'organic', S.brand.primary));
+    if(s.followerTrend?.length>1) body.appendChild(makeBarChartWithTotal('Daily Follower Gains', s.followerTrend, 'date', 'organic', S.brand.primary));
     if(s.followers){
       const dg=document.createElement('div'); dg.className='grid-2';
       if(s.followers.byLocation?.length) dg.appendChild(makeDemCard('Top Locations',s.followers.byLocation.slice(0,8),'total',S.brand.primary));
@@ -853,19 +1063,35 @@ async function openReport(){
     if(s.top5?.length) body.appendChild(makePostsTableWithPreviews(s.top5, previewMap));
 
   } else if(!isCompany && s){
-    if(s.engagement?.length>1) body.appendChild(makeDualLineChart('Daily Impressions & Engagements',s.engagement,'date','impressions','engagements',S.brand.primary,S.brand.accent));
-    if(s.follByDate?.length>1) body.appendChild(makeBarChart('New Followers by Date',s.follByDate,'date','newFollowers',S.brand.primary));
-    const dg=document.createElement('div'); dg.className='grid-2'; dg.style.marginBottom='24px';
-    if(s.demographics?.['Job titles']?.length) dg.appendChild(makeDemCard('Top Job Titles',s.demographics['Job titles'],'pct',S.brand.primary));
-    if(s.demographics?.['Locations']?.length) dg.appendChild(makeDemCard('Top Locations',s.demographics['Locations'],'pct',S.brand.accent));
-    if(s.demographics?.['Industries']?.length) dg.appendChild(makeDemCard('Top Industries',s.demographics['Industries'],'pct',S.brand.primary));
-    if(s.demographics?.['Seniority']?.length) dg.appendChild(makeDemCard('Seniority',s.demographics['Seniority'],'pct',S.brand.accent));
-    if(dg.children.length) body.appendChild(dg);
-    if(s.topByEng?.length) body.appendChild(makePostsCardsWithPreviews('Top Posts by Engagements',s.topByEng.slice(0,6),'engagements',previewMap,'personal'));
-    if(s.topByImp?.length) body.appendChild(makePostsCardsWithPreviews('Top Posts by Impressions',s.topByImp.slice(0,6),'impressions',previewMap,'personal'));
+    // Separate charts in report too
+    if(s.engagement?.length>1){
+      body.appendChild(makeLineChart('Daily Impressions', s.engagement, 'date', 'impressions', S.brand.primary));
+      body.appendChild(makeLineChart('Daily Engagements', s.engagement, 'date', 'engagements', S.brand.accent));
+    }
+    if(s.follByDate?.length>1) body.appendChild(makeBarChartWithTotal('New Followers by Date', s.follByDate, 'date', 'newFollowers', S.brand.primary, s.totalNewFollowers));
+
+    // Demographics
+    if(s.demographics && Object.keys(s.demographics).length){
+      const dg=document.createElement('div'); dg.className='grid-2'; dg.style.marginBottom='24px';
+      if(s.demographics['Job titles']?.length) dg.appendChild(makeDemCard('Top Job Titles',s.demographics['Job titles'],'pct',S.brand.primary));
+      if(s.demographics['Locations']?.length) dg.appendChild(makeDemCard('Top Locations',s.demographics['Locations'],'pct',S.brand.accent));
+      if(s.demographics['Industries']?.length) dg.appendChild(makeDemCard('Top Industries',s.demographics['Industries'],'pct',S.brand.primary));
+      if(s.demographics['Seniority']?.length) dg.appendChild(makeDemCard('Seniority',s.demographics['Seniority'],'pct',S.brand.accent));
+      if(s.demographics['Company size']?.length) dg.appendChild(makeDemCard('Company Size',s.demographics['Company size'],'pct',S.brand.primary));
+      if(s.demographics['Companies']?.length) dg.appendChild(makeDemCard('Top Companies',s.demographics['Companies'],'pct',S.brand.accent));
+      if(dg.children.length){
+        const demSection = document.createElement('div');
+        demSection.innerHTML='<div style="font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px">👥 Audience Demographics</div>';
+        demSection.appendChild(dg);
+        body.appendChild(demSection);
+      }
+    }
+
+    // Top posts — show up to 12 in report
+    if(s.topByEng?.length) body.appendChild(makePostsCardsWithPreviews('Top Posts by Engagements',s.topByEng.slice(0,12),'engagements',previewMap,'personal'));
+    if(s.topByImp?.length) body.appendChild(makePostsCardsWithPreviews('Top Posts by Impressions',s.topByImp.slice(0,12),'impressions',previewMap,'personal'));
   }
 
-  // Footer
   const ft=document.createElement('div'); ft.style.cssText='margin-top:40px;text-align:center;font-size:11px;color:#aaa';
   ft.textContent='Generated on '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});
   body.appendChild(ft);
@@ -873,7 +1099,6 @@ async function openReport(){
   document.getElementById('report-view').classList.add('open');
 }
 
-// Synchronous card builders for the print report (previews already loaded into previewMap)
 function makePostsTableWithPreviews(posts, previewMap){
   const card=document.createElement('div'); card.className='card';
   const grid=document.createElement('div'); grid.className='posts-preview-grid';
