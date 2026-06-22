@@ -429,6 +429,7 @@
         </div>
         <div style="display:flex;gap:10px;align-items:center">
           <select id="month-select" onchange="switchMonth(this.value)" style="padding:7px 10px;border-radius:8px;border:none;font-size:13px;background:rgba(255,255,255,0.2);color:#fff;cursor:pointer"></select>
+          <button onclick="copyAnalyticsData()" id="copy-data-btn" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600">📋 Copy Data</button>
           <button onclick="openReport()" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600">🖨 Print Report</button>
         </div>
       </div>
@@ -1122,6 +1123,131 @@ function renderMD(elId, text){
   });
   html = html.replace(/(<li>[\s\S]*?<\/li>)(\s*<li>[\s\S]*?<\/li>)*/g, m=>`<ul>${m}</ul>`);
   el.innerHTML=html;
+}
+
+// ── COPY DATA FOR AI ───────────────────────────────────────────
+async function copyAnalyticsData(){
+  const entry=S.clients[S.activeClient]?.[S.activeMonth];
+  if(!entry) return;
+  const btn=document.getElementById('copy-data-btn');
+  const origText=btn?.textContent;
+
+  const isCompany=entry.type==='company';
+  const s=isCompany?entry.summary:entry.personal;
+  const monthLabel=fmtMonth(S.activeMonth);
+  const totalFollowers=isCompany?(entry.manualFollowers||s.totalFollowers||0):s.totalFollowers||0;
+
+  // Fetch LP previews for all posts we don't have yet
+  const posts=isCompany?(s.allPostsByEng||[]):(s.topByEng||[]);
+  if(S.lpKey&&posts.length){
+    if(btn){btn.textContent='⏳ Fetching post text…';btn.disabled=true;}
+    await Promise.all(posts.map(p=>fetchLinkPreview(isCompany?p.link:p.url)));
+    if(btn){btn.textContent=origText;btn.disabled=false;}
+  }
+
+  const L=[];
+  L.push(`# LinkedIn Analytics — ${S.activeClient} · ${monthLabel}`);
+  L.push(isCompany?'Type: Company Page':'Type: Personal Profile');
+  L.push(`Generated: ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'})}`);
+  L.push('');
+
+  // Summary
+  L.push('## Summary');
+  if(isCompany){
+    L.push(`Impressions (Organic): ${(s.totalImpressions||0).toLocaleString()}`);
+    L.push(`Total Engagements: ${(s.totalEngagements||0).toLocaleString()}`);
+    L.push(`Engagement Rate: ${s.engRate||0}%`);
+    L.push(`New Followers: ${(s.totalNewFollowers||0).toLocaleString()}`);
+    L.push(`Total Followers: ${totalFollowers.toLocaleString()}`);
+  } else {
+    L.push(`Impressions: ${(s.impressions||0).toLocaleString()}`);
+    L.push(`Members Reached: ${(s.membersReached||0).toLocaleString()}`);
+    L.push(`Total Engagements: ${(s.totalEngagements||0).toLocaleString()}`);
+    L.push(`Engagement Rate: ${s.engRate||0}%`);
+    L.push(`Total Followers: ${totalFollowers.toLocaleString()}`);
+    L.push(`New Followers (this period): ${(s.totalNewFollowers||0).toLocaleString()}`);
+  }
+  L.push('');
+
+  // Daily impressions trend
+  if(isCompany&&s.impressionTrend?.length){
+    L.push('## Daily Impressions (Organic)');
+    s.impressionTrend.forEach(r=>L.push(`${r.date}: ${r.impressions.toLocaleString()}`));
+    L.push('');
+  }
+  if(!isCompany&&s.engagement?.length){
+    L.push('## Daily Performance');
+    s.engagement.forEach(r=>L.push(`${r.date}: ${r.impressions.toLocaleString()} impressions, ${r.engagements.toLocaleString()} engagements`));
+    L.push('');
+  }
+
+  // Follower trend
+  if(isCompany&&s.followerTrend?.length){
+    L.push('## Daily Follower Gains');
+    s.followerTrend.forEach(r=>L.push(`${r.date}: +${r.organic}`));
+    L.push('');
+  }
+  if(!isCompany&&s.follByDate?.length){
+    L.push('## Daily New Followers');
+    s.follByDate.forEach(r=>L.push(`${r.date}: +${r.newFollowers}`));
+    L.push('');
+  }
+
+  // Demographics
+  if(isCompany&&s.followers){
+    const f=s.followers;
+    const demSections=[['Top Locations',f.byLocation],['By Seniority',f.bySeniority],['Job Functions',f.byJobFunction],['Top Industries',f.byIndustry],['Company Size',f.byCompanySize]];
+    if(demSections.some(([,d])=>d?.length)){
+      L.push('## Audience Demographics');
+      demSections.forEach(([label,data])=>{if(data?.length) L.push(`${label}: ${data.map(d=>`${d.name} (${d.total})`).join(', ')}`);});
+      L.push('');
+    }
+  }
+  if(!isCompany&&s.demographics&&Object.keys(s.demographics).length){
+    L.push('## Audience Demographics');
+    Object.entries(s.demographics).forEach(([cat,items])=>{if(items?.length) L.push(`${cat}: ${items.slice(0,10).map(d=>`${d.name} (${d.pct})`).join(', ')}`);});
+    L.push('');
+  }
+
+  // Posts
+  const postList=isCompany?(s.allPostsByEng||[]):(s.topByEng||[]);
+  if(postList.length){
+    L.push(`## Posts (${postList.length} total, sorted by engagement)`);
+    postList.forEach((p,i)=>{
+      const url=isCompany?p.link:p.url;
+      const rawDate=isCompany?p.createdDate:p.publishDate;
+      const urlDate=linkedInPostDate(url);
+      let dateStr='',dayStr='';
+      if(urlDate){
+        dateStr=urlDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+        dayStr=urlDate.toLocaleDateString('en-GB',{weekday:'long'});
+      } else if(rawDate){ dateStr=rawDate; }
+      L.push('');
+      L.push(`### Post ${i+1}${dateStr?' — '+dateStr:''}${dayStr?' ('+dayStr+')':''}`);
+      if(url) L.push(`URL: ${url}`);
+      const cached=S.lpCache[url];
+      if(cached?.description) L.push(`Text preview: "${cached.description}"`);
+      else if(cached?.title) L.push(`Title: "${cached.title}"`);
+      if(isCompany){
+        const totalEng=(p.likes||0)+(p.comments||0)+(p.reposts||0);
+        L.push(`Impressions: ${(p.impressions||0).toLocaleString()} | Likes: ${p.likes||0} | Comments: ${p.comments||0} | Reposts: ${p.reposts||0} | Total Engagements: ${totalEng} | Eng Rate: ${((p.engRate||0)*100).toFixed(2)}%`);
+      } else {
+        L.push(`Engagements: ${(p.engagements||0).toLocaleString()}${p.impressions?' | Impressions: '+p.impressions.toLocaleString():''}`);
+      }
+    });
+    L.push('');
+  }
+
+  const text=L.join('\n');
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch(e) {
+    const ta=document.createElement('textarea');
+    ta.value=text; ta.style.cssText='position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+  if(btn){ btn.textContent='✓ Copied!'; setTimeout(()=>{btn.textContent=origText;},2500); }
 }
 
 // ── PRINT REPORT ───────────────────────────────────────────────
