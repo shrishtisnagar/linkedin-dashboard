@@ -660,7 +660,7 @@ function linkedInPostDate(url){
   const m = url.match(/(\d{17,20})/);
   if(!m) return null;
   try {
-    const ts = Number(BigInt(m[1]) >> BigInt(22)) + 1351728000000;
+    const ts = Number(BigInt(m[1]) >> BigInt(22));
     const d = new Date(ts);
     if(isNaN(d.getTime())) return null;
     return d;
