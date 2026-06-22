@@ -1145,6 +1145,9 @@ async function copyAnalyticsData(){
     if(btn){btn.textContent=origText;btn.disabled=false;}
   }
 
+  // Parse "15 Jan" strings → short weekday using the active month's year
+  const wd=ds=>{if(!ds)return'';const yr=S.activeMonth?S.activeMonth.split('-')[0]:new Date().getFullYear();const d=new Date(ds+' '+yr);return isNaN(d.getTime())?'':d.toLocaleDateString('en-GB',{weekday:'short'});};
+
   const L=[];
   L.push(`# LinkedIn Analytics — ${S.activeClient} · ${monthLabel}`);
   L.push(isCompany?'Type: Company Page':'Type: Personal Profile');
@@ -1172,24 +1175,24 @@ async function copyAnalyticsData(){
   // Daily impressions trend
   if(isCompany&&s.impressionTrend?.length){
     L.push('## Daily Impressions (Organic)');
-    s.impressionTrend.forEach(r=>L.push(`${r.date}: ${r.impressions.toLocaleString()}`));
+    s.impressionTrend.forEach(r=>L.push(`${r.date} (${wd(r.date)}): ${r.impressions.toLocaleString()}`));
     L.push('');
   }
   if(!isCompany&&s.engagement?.length){
     L.push('## Daily Performance');
-    s.engagement.forEach(r=>L.push(`${r.date}: ${r.impressions.toLocaleString()} impressions, ${r.engagements.toLocaleString()} engagements`));
+    s.engagement.forEach(r=>L.push(`${r.date} (${wd(r.date)}): ${r.impressions.toLocaleString()} impressions, ${r.engagements.toLocaleString()} engagements`));
     L.push('');
   }
 
   // Follower trend
   if(isCompany&&s.followerTrend?.length){
     L.push('## Daily Follower Gains');
-    s.followerTrend.forEach(r=>L.push(`${r.date}: +${r.organic}`));
+    s.followerTrend.forEach(r=>L.push(`${r.date} (${wd(r.date)}): +${r.organic}`));
     L.push('');
   }
   if(!isCompany&&s.follByDate?.length){
     L.push('## Daily New Followers');
-    s.follByDate.forEach(r=>L.push(`${r.date}: +${r.newFollowers}`));
+    s.follByDate.forEach(r=>L.push(`${r.date} (${wd(r.date)}): +${r.newFollowers}`));
     L.push('');
   }
 
@@ -1221,7 +1224,7 @@ async function copyAnalyticsData(){
       if(urlDate){
         dateStr=urlDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
         dayStr=urlDate.toLocaleDateString('en-GB',{weekday:'long'});
-      } else if(rawDate){ dateStr=rawDate; }
+      } else if(rawDate){ dateStr=rawDate; dayStr=wd(rawDate); }
       L.push('');
       L.push(`### Post ${i+1}${dateStr?' — '+dateStr:''}${dayStr?' ('+dayStr+')':''}`);
       if(url) L.push(`URL: ${url}`);
