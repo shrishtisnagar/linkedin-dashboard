@@ -623,6 +623,22 @@ function fmtD(raw){ if(!raw) return ''; const d=new Date(raw); if(isNaN(d)) retu
 function fmtMonth(ym){ if(!ym) return ''; const [y,m]=ym.split('-'); return new Date(+y,+m-1,1).toLocaleString('default',{month:'long',year:'numeric'}); }
 function n(v){ return Number(v)||0; }
 
+// LinkedIn activity IDs are Snowflake-style: upper bits encode ms since LinkedIn's epoch (2012-10-31).
+// Formula: timestamp_ms = (activityId >> 22) + 1351728000000
+function linkedInPostDate(url){
+  if(!url) return null;
+  // Matches the 17–20 digit activity ID in both URL formats:
+  //   /posts/user_slug-DIGITS-XXXX  and  /feed/update/urn:li:activity:DIGITS
+  const m = url.match(/(\d{17,20})/);
+  if(!m) return null;
+  try {
+    const ts = Number(BigInt(m[1]) >> BigInt(22)) + 1351728000000;
+    const d = new Date(ts);
+    if(isNaN(d.getTime())) return null;
+    return d;
+  } catch(e){ return null; }
+}
+
 function parsePersonal(wb){
   const disc=getRaw(wb,'DISCOVERY');
   let impressions=0,membersReached=0;
@@ -954,7 +970,16 @@ function buildPostCardHTML(p, i, preview, type, valKey){
     const label = valKey==='engagements' ? '🤝' : '👁';
     statsHtml = `<div class="post-preview-stats"><div class="post-preview-stat">${label} <span>${val.toLocaleString()}</span></div></div>`;
   }
-  const date = type==='company' ? (p.createdDate||'') : (p.publishDate||'');
+  const rawDate = type==='company' ? (p.createdDate||'') : (p.publishDate||'');
+  const urlDate = linkedInPostDate(url);
+  let dateHtml = '';
+  if(urlDate){
+    const day = urlDate.toLocaleDateString('en-GB',{weekday:'long'});
+    const short = urlDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+    dateHtml = `<span class="post-preview-date" title="Date decoded from post URL"><strong>${day}</strong>, ${short}</span>`;
+  } else if(rawDate){
+    dateHtml = `<span class="post-preview-date">${rawDate}</span>`;
+  }
   return `
     ${imgHtml}
     <div class="post-preview-body">
@@ -962,7 +987,7 @@ function buildPostCardHTML(p, i, preview, type, valKey){
       ${statsHtml}
     </div>
     <div class="post-preview-footer">
-      <span class="post-preview-date">${date}</span>
+      ${dateHtml}
       ${url ? `<a href="${url}" target="_blank" class="post-preview-link" style="background:var(--primary)">View Post →</a>` : ''}
     </div>`;
 }
