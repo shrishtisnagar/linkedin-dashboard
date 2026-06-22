@@ -825,7 +825,11 @@ function renderCharts(entry, isCompany){
     // Top posts — with see more
     if(pd.topByEng?.length) el.appendChild(makeTopPostsPersonalCards('Top Posts by Engagements', pd.topByEng, 'engagements', 'eng'));
     if(pd.topByImp?.length) el.appendChild(makeTopPostsPersonalCards('Top Posts by Impressions', pd.topByImp, 'impressions', 'imp'));
-    if(pd.topByEng?.length) el.appendChild(makeAllPostsPerformanceTable(pd.topByEng,'personal'));
+    if(pd.topByEng?.length){
+      const impMap={};(pd.topByImp||[]).forEach(p=>impMap[p.url]=p.impressions);
+      const merged=pd.topByEng.map(p=>({...p,impressions:impMap[p.url]||0}));
+      el.appendChild(makeAllPostsPerformanceTable(merged,'personal'));
+    }
   }
 }
 
@@ -1242,7 +1246,7 @@ async function copyAnalyticsData(){
   }
 
   // Posts
-  const postList=isCompany?(s.allPostsByEng||[]):(s.topByEng||[]);
+  const postList=isCompany?(s.allPostsByEng||[]):((s.topByEng||[]).map(p=>{ const impMap={};(s.topByImp||[]).forEach(q=>impMap[q.url]=q.impressions); return {...p,impressions:impMap[p.url]||0}; }));
   if(postList.length){
     L.push(`## Posts (${postList.length} total, sorted by engagement)`);
     postList.forEach((p,i)=>{
