@@ -700,9 +700,10 @@ function summariseCompany(content,followers){
   const totalNewFollowers=(followers?.newFollowers||[]).reduce((s,r)=>s+r.organic+r.sponsored+r.autoInvited,0);
   const totalFollowers=followers?.totalFollowers||0;
   const top5=[...posts].sort((a,b)=>b.impressions-a.impressions).slice(0,5);
+  const allPostsByEng=[...posts].sort((a,b)=>(b.likes+b.comments+b.reposts)-(a.likes+a.comments+a.reposts));
   const impressionTrend=metrics.map(r=>({date:r.date,impressions:r.impressionsOrganic}));
   const followerTrend=(followers?.newFollowers||[]).map(r=>({date:r.date,organic:r.organic}));
-  return {totalImpressions,totalEngagements,engRate,totalNewFollowers,totalFollowers,top5,impressionTrend,followerTrend,followers};
+  return {totalImpressions,totalEngagements,engRate,totalNewFollowers,totalFollowers,top5,allPostsByEng,impressionTrend,followerTrend,followers};
 }
 
 // ── DASHBOARD RENDER ───────────────────────────────────────────
@@ -765,6 +766,7 @@ function renderCharts(entry, isCompany){
       if(demGrid.children.length) el.appendChild(demGrid);
     }
     if(s.top5?.length) el.appendChild(makePostsTable(s.top5, isCompany));
+    if(s.allPostsByEng?.length) el.appendChild(makeAllPostsPerformanceTable(s.allPostsByEng,'company'));
   } else if(!isCompany && entry.personal){
     const pd = entry.personal;
     // Separate impressions and engagements into two distinct charts
@@ -795,6 +797,7 @@ function renderCharts(entry, isCompany){
     // Top posts — with see more
     if(pd.topByEng?.length) el.appendChild(makeTopPostsPersonalCards('Top Posts by Engagements', pd.topByEng, 'engagements', 'eng'));
     if(pd.topByImp?.length) el.appendChild(makeTopPostsPersonalCards('Top Posts by Impressions', pd.topByImp, 'impressions', 'imp'));
+    if(pd.topByEng?.length) el.appendChild(makeAllPostsPerformanceTable(pd.topByEng,'personal'));
   }
 }
 
@@ -944,6 +947,111 @@ function makeTopPostsPersonalCards(title, allPosts, valKey, sectionKey){
     seeMoreEl.appendChild(btn);
   }
 
+  return card;
+}
+
+function makeAllPostsPerformanceTable(posts, type){
+  const card=document.createElement('div'); card.className='card';
+  const isCompany=type==='company';
+  const noKey=!S.lpKey;
+  const lpNotice=noKey?`<div class="lp-key-notice" style="margin-bottom:12px">🔗 <span>Add a <strong>LinkPreview API key</strong> in <a href="#" onclick="setView('settings')" style="color:var(--primary)">Settings</a> to load post images and text previews.</span></div>`:'';
+
+  let theadHtml=`<tr>
+    <th style="width:28px;text-align:center">#</th>
+    <th style="min-width:105px">Date</th>
+    ${S.lpKey?'<th style="width:64px">Image</th>':''}
+    <th>Post Preview</th>`;
+  if(isCompany){
+    theadHtml+=`<th style="text-align:right;min-width:85px">Impressions</th>
+    <th style="text-align:right">Likes</th>
+    <th style="text-align:right">Comments</th>
+    <th style="text-align:right">Reposts</th>
+    <th style="text-align:right;min-width:75px;color:var(--primary)">Total Eng.</th>
+    <th style="text-align:right">Eng. Rate</th>`;
+  } else {
+    theadHtml+=`<th style="text-align:right;min-width:95px;color:var(--primary)">Engagements</th>
+    <th style="text-align:right;min-width:80px">Impressions</th>`;
+  }
+  theadHtml+='</tr>';
+
+  let tbodyHtml='';
+  posts.forEach((p,i)=>{
+    const url=isCompany?p.link:p.url;
+    const rawDate=isCompany?p.createdDate:p.publishDate;
+    const urlDate=linkedInPostDate(url);
+    let dateCell='';
+    if(urlDate){
+      const day=urlDate.toLocaleDateString('en-GB',{weekday:'long'});
+      const d=urlDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+      dateCell=`<div style="font-weight:600;font-size:12px;white-space:nowrap">${d}</div><div style="font-size:11px;color:#888">${day}</div>`;
+    } else if(rawDate){
+      dateCell=`<div style="font-weight:600;font-size:12px;white-space:nowrap">${rawDate}</div>`;
+    } else {
+      dateCell=`<div style="font-size:11px;color:#bbb">—</div>`;
+    }
+
+    const px=isCompany?'c':'p';
+    const imgId=`pt-img-${px}-${i}`;
+    const txtId=`pt-txt-${px}-${i}`;
+    const imgCell=S.lpKey?`<td style="padding:6px 8px;vertical-align:middle"><div id="${imgId}" style="width:54px;height:54px;border-radius:6px;overflow:hidden;background:#f0f4f8;display:flex;align-items:center;justify-content:center;font-size:20px">📝</div></td>`:'';
+    const linkHtml=url?`<a href="${url}" target="_blank" style="font-size:11px;font-weight:600;color:var(--primary)">View Post →</a>`:'';
+    const placeholder=S.lpKey?`<span style="color:#ccc;font-style:italic;font-size:11px">Loading…</span>`:`<span style="color:#ccc;font-size:11px">Add LinkPreview key to see text</span>`;
+    const txtCell=`<td style="max-width:0;vertical-align:middle;padding-right:12px">
+      <div id="${txtId}" style="font-size:12px;color:#333;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;margin-bottom:4px">${placeholder}</div>
+      ${linkHtml}
+    </td>`;
+
+    let metricCells='';
+    if(isCompany){
+      const totalEng=(p.likes||0)+(p.comments||0)+(p.reposts||0);
+      metricCells=`<td style="text-align:right;font-size:12px">${(p.impressions||0).toLocaleString()}</td>
+        <td style="text-align:right;font-size:12px">${p.likes||0}</td>
+        <td style="text-align:right;font-size:12px">${p.comments||0}</td>
+        <td style="text-align:right;font-size:12px">${p.reposts||0}</td>
+        <td style="text-align:right;font-size:12px;font-weight:700;color:var(--primary)">${totalEng.toLocaleString()}</td>
+        <td style="text-align:right;font-size:12px">${((p.engRate||0)*100).toFixed(2)}%</td>`;
+    } else {
+      metricCells=`<td style="text-align:right;font-size:12px;font-weight:700;color:var(--primary)">${(p.engagements||0).toLocaleString()}</td>
+        <td style="text-align:right;font-size:12px">${(p.impressions||0).toLocaleString()}</td>`;
+    }
+
+    const rowBg=i%2===0?'':'background:#fafbff';
+    tbodyHtml+=`<tr style="${rowBg}">
+      <td style="text-align:center;font-weight:700;color:#ccc;font-size:12px">${i+1}</td>
+      <td style="vertical-align:middle">${dateCell}</td>
+      ${imgCell}
+      ${txtCell}
+      ${metricCells}
+    </tr>`;
+  });
+
+  card.innerHTML=`
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:4px">
+      <div style="font-size:15px;font-weight:700;color:#1a1a2e">📋 All Posts — Performance Ranking</div>
+      <div style="font-size:12px;color:#aaa">${posts.length} posts · sorted by ${isCompany?'total engagements':'engagements'}</div>
+    </div>
+    <div style="font-size:11px;color:#bbb;margin-bottom:12px">Post text is an Open Graph preview (first ~200 chars from LinkedIn's metadata). Full text requires visiting the post directly — LinkedIn doesn't expose it via export or public API.</div>
+    ${lpNotice}
+    <div style="overflow-x:auto"><table><thead>${theadHtml}</thead><tbody>${tbodyHtml}</tbody></table></div>`;
+
+  if(S.lpKey){
+    posts.forEach((p,i)=>{
+      const url=isCompany?p.link:p.url;
+      if(!url) return;
+      const px=isCompany?'c':'p';
+      fetchLinkPreview(url).then(preview=>{
+        if(!preview) return;
+        const imgEl=document.getElementById(`pt-img-${px}-${i}`);
+        const txtEl=document.getElementById(`pt-txt-${px}-${i}`);
+        if(imgEl&&preview.image) imgEl.innerHTML=`<img src="${preview.image}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.textContent='📝'">`;
+        if(txtEl){
+          const text=preview.description||preview.title||'';
+          if(text){ txtEl.textContent=text; }
+          else { txtEl.innerHTML='<span style="color:#ccc;font-style:italic">No preview available</span>'; }
+        }
+      });
+    });
+  }
   return card;
 }
 
