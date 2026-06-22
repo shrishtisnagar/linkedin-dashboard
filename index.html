@@ -411,6 +411,27 @@
         <span id="lp-key-status" style="font-size:12px;color:#38a169"></span>
       </div>
     </div>
+    <div class="card" style="margin-top:20px">
+      <div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:6px">🕐 Post Time Zone</div>
+      <p style="font-size:13px;color:#888;margin-bottom:14px;line-height:1.6">Post times are decoded from the LinkedIn URL. Choose your timezone for display and copied data.</p>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Display Timezone</label>
+        <select class="form-input" id="tz-select" onchange="saveTz(this.value)">
+          <option value="Asia/Kolkata">IST — India Standard Time (UTC+5:30)</option>
+          <option value="UTC">UTC — Coordinated Universal Time</option>
+          <option value="Europe/London">GMT/BST — London</option>
+          <option value="Europe/Paris">CET/CEST — Paris / Berlin / Rome</option>
+          <option value="Europe/Amsterdam">CET/CEST — Amsterdam / Stockholm</option>
+          <option value="America/New_York">EST/EDT — New York</option>
+          <option value="America/Chicago">CST/CDT — Chicago</option>
+          <option value="America/Los_Angeles">PST/PDT — Los Angeles</option>
+          <option value="Asia/Dubai">GST — Dubai (UTC+4)</option>
+          <option value="Asia/Singapore">SGT — Singapore (UTC+8)</option>
+          <option value="Asia/Tokyo">JST — Tokyo (UTC+9)</option>
+          <option value="Australia/Sydney">AEST/AEDT — Sydney</option>
+        </select>
+      </div>
+    </div>
   </div>
 
   <!-- DASHBOARD VIEW -->
@@ -464,6 +485,7 @@ const S = {
   clients: JSON.parse(localStorage.getItem('li_clients_v6')||'{}'),
   brand: JSON.parse(localStorage.getItem('li_brand_v6')||'{"primary":"#0077B5","accent":"#00A0DC"}'),
   api: JSON.parse(localStorage.getItem('li_api_v6')||'{"key":"","provider":"anthropic","model":"claude-3-5-sonnet-20241022","endpoint":"https://api.anthropic.com/v1/messages"}'),
+  tz: localStorage.getItem('li_tz_v6')||'Asia/Kolkata',
   lpKey: localStorage.getItem('li_lp_key')||'',
   lpCache: JSON.parse(localStorage.getItem('li_lp_cache')||'{}'),
   activeClient: '',
@@ -498,6 +520,8 @@ function applyBrand(){
   if(pp){ pp.style.background = S.brand.primary; pa.style.background = S.brand.accent; }
   const lpInput = document.getElementById('lp-key-input');
   if(lpInput && S.lpKey) lpInput.value = S.lpKey;
+  const tzSel = document.getElementById('tz-select');
+  if(tzSel) tzSel.value = S.tz;
 }
 function updateBrand(){
   S.brand.primary = document.getElementById('color-primary').value;
@@ -514,6 +538,9 @@ function saveLpKey(){
   st.textContent = key ? '✓ Key saved' : 'Key cleared';
   setTimeout(()=>st.textContent='', 2500);
 }
+
+function saveTz(tz){ S.tz=tz; localStorage.setItem('li_tz_v6',tz); renderDashboard(); }
+function tzAbbr(){ try{ return new Intl.DateTimeFormat('en-GB',{timeZone:S.tz,timeZoneName:'short'}).formatToParts(new Date()).find(p=>p.type==='timeZoneName')?.value||''; }catch(e){ return ''; } }
 
 async function fetchLinkPreview(url){
   if(!S.lpKey || !url) return null;
@@ -982,9 +1009,10 @@ function makeAllPostsPerformanceTable(posts, type){
     const urlDate=linkedInPostDate(url);
     let dateCell='';
     if(urlDate){
-      const day=urlDate.toLocaleDateString('en-GB',{weekday:'long'});
-      const d=urlDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-      dateCell=`<div style="font-weight:600;font-size:12px;white-space:nowrap">${d}</div><div style="font-size:11px;color:#888">${day}</div>`;
+      const day=urlDate.toLocaleDateString('en-GB',{weekday:'long',timeZone:S.tz});
+      const d=urlDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',timeZone:S.tz});
+      const time=urlDate.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:S.tz,hour12:true}).toUpperCase();
+      dateCell=`<div style="font-weight:600;font-size:12px;white-space:nowrap">${d}</div><div style="font-size:11px;color:#888">${day}</div><div style="font-size:11px;color:#aaa">${time} ${tzAbbr()}</div>`;
     } else if(rawDate){
       dateCell=`<div style="font-weight:600;font-size:12px;white-space:nowrap">${rawDate}</div>`;
     } else {
@@ -1083,9 +1111,10 @@ function buildPostCardHTML(p, i, preview, type, valKey){
   const urlDate = linkedInPostDate(url);
   let dateHtml = '';
   if(urlDate){
-    const day = urlDate.toLocaleDateString('en-GB',{weekday:'long'});
-    const short = urlDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-    dateHtml = `<span class="post-preview-date" title="Date decoded from post URL"><strong>${day}</strong>, ${short}</span>`;
+    const day = urlDate.toLocaleDateString('en-GB',{weekday:'long',timeZone:S.tz});
+    const short = urlDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',timeZone:S.tz});
+    const time = urlDate.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:S.tz,hour12:true}).toUpperCase();
+    dateHtml = `<span class="post-preview-date" title="Date &amp; time decoded from post URL"><strong>${day}</strong>, ${short} · ${time} ${tzAbbr()}</span>`;
   } else if(rawDate){
     dateHtml = `<span class="post-preview-date">${rawDate}</span>`;
   }
@@ -1152,6 +1181,7 @@ async function copyAnalyticsData(){
   L.push(`# LinkedIn Analytics — ${S.activeClient} · ${monthLabel}`);
   L.push(isCompany?'Type: Company Page':'Type: Personal Profile');
   L.push(`Generated: ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'})}`);
+  L.push(`Post times in: ${S.tz} (${tzAbbr()})`);
   L.push('');
 
   // Summary
@@ -1220,13 +1250,14 @@ async function copyAnalyticsData(){
       const url=isCompany?p.link:p.url;
       const rawDate=isCompany?p.createdDate:p.publishDate;
       const urlDate=linkedInPostDate(url);
-      let dateStr='',dayStr='';
+      let dateStr='',dayStr='',timeStr='';
       if(urlDate){
-        dateStr=urlDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-        dayStr=urlDate.toLocaleDateString('en-GB',{weekday:'long'});
+        dateStr=urlDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',timeZone:S.tz});
+        dayStr=urlDate.toLocaleDateString('en-GB',{weekday:'long',timeZone:S.tz});
+        timeStr=urlDate.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:S.tz,hour12:true}).toUpperCase()+' '+tzAbbr();
       } else if(rawDate){ dateStr=rawDate; dayStr=wd(rawDate); }
       L.push('');
-      L.push(`### Post ${i+1}${dateStr?' — '+dateStr:''}${dayStr?' ('+dayStr+')':''}`);
+      L.push(`### Post ${i+1}${dateStr?' — '+dateStr:''}${dayStr?' ('+dayStr+')':''}${timeStr?' at '+timeStr:''}`);
       if(url) L.push(`URL: ${url}`);
       const cached=S.lpCache[url];
       if(cached?.description) L.push(`Text preview: "${cached.description}"`);
